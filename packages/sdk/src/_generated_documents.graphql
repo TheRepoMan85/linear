@@ -1,8 +1,7 @@
 # A Git target branch for which there are automations (GitAutomationState).
 fragment GitAutomationTargetBranch on GitAutomationTargetBranch {
   __typename
-  # The last time at which the entity was meaningfully updated, i.e. for all changes of syncable properties except those
-  #     for which updates should not produce an update to updatedAt (see skipUpdatedAtKeys). This is the same as the creation time if the entity hasn't
+  # The last time at which the entity was meaningfully updated. This is the same as the creation time if the entity hasn't
   #     been updated after creation.
   updatedAt
   # The target branch pattern.
@@ -24,8 +23,7 @@ fragment GitAutomationTargetBranch on GitAutomationTargetBranch {
 # A basic entity.
 fragment Entity on Entity {
   __typename
-  # The last time at which the entity was meaningfully updated, i.e. for all changes of syncable properties except those
-  #     for which updates should not produce an update to updatedAt (see skipUpdatedAtKeys). This is the same as the creation time if the entity hasn't
+  # The last time at which the entity was meaningfully updated. This is the same as the creation time if the entity hasn't
   #     been updated after creation.
   updatedAt
   # The time at which the entity was archived. Null if the entity has not been archived.
@@ -59,6 +57,10 @@ fragment Comment on Comment {
   url
   # Emoji reaction summary, grouped by emoji type.
   reactionData
+  # Reactions associated with the comment.
+  reactions {
+    ...Reaction
+  }
   # The bot that created the comment.
   botActor {
     ...ActorBot
@@ -73,6 +75,10 @@ fragment Comment on Comment {
   documentContent {
     ...DocumentContent
   }
+  # The external thread that the comment is synced with.
+  externalThread {
+    ...SyncedExternalThread
+  }
   # The external user who wrote the comment.
   externalUser {
     id
@@ -81,8 +87,7 @@ fragment Comment on Comment {
   issue {
     id
   }
-  # The last time at which the entity was meaningfully updated, i.e. for all changes of syncable properties except those
-  #     for which updates should not produce an update to updatedAt (see skipUpdatedAtKeys). This is the same as the creation time if the entity hasn't
+  # The last time at which the entity was meaningfully updated. This is the same as the creation time if the entity hasn't
   #     been updated after creation.
   updatedAt
   # The parent comment under which the current comment is nested.
@@ -115,21 +120,10 @@ fragment Comment on Comment {
   }
 }
 
-# A company related to issue's origin.
-fragment Company on Company {
+# A comment on a pull request.
+fragment PullRequestComment on PullRequestComment {
   __typename
-  # Company ID in an external system.
-  externalId
-  # Company logo URL.
-  logoUrl
-  # Company name.
-  name
-  # Company website URL.
-  websiteUrl
-  # Custom company properties.
-  companyProperties
-  # The last time at which the entity was meaningfully updated, i.e. for all changes of syncable properties except those
-  #     for which updates should not produce an update to updatedAt (see skipUpdatedAtKeys). This is the same as the creation time if the entity hasn't
+  # The last time at which the entity was meaningfully updated. This is the same as the creation time if the entity hasn't
   #     been updated after creation.
   updatedAt
   # The time at which the entity was archived. Null if the entity has not been archived.
@@ -138,10 +132,39 @@ fragment Company on Company {
   createdAt
   # The unique identifier of the entity.
   id
-  # The user who added the company.
-  creator {
-    id
-  }
+}
+
+# A comment related notification.
+fragment CommentNotification on CommentNotification {
+  __typename
+  # Name of the reaction emoji related to the notification.
+  reactionEmoji
+  # Related comment ID. Null if the notification is not related to a comment.
+  commentId
+  # Related parent comment ID. Null if the notification is not related to a comment.
+  parentCommentId
+}
+
+# A comment thread that is synced with an external source.
+fragment SyncedExternalThread on SyncedExternalThread {
+  __typename
+  # The display name of the source.
+  name
+  # The display name of the thread.
+  displayName
+  # The external url of the thread.
+  url
+  # The sub type of the external source.
+  subType
+  # The type of the external source.
+  type
+  # Whether a connected personal integration is required to comment in this thread.
+  isPersonalIntegrationRequired
+  # Whether the current user has the corresponding personal integration connected for the external service.
+  isPersonalIntegrationConnected
+  # Whether this thread is syncing with the external service.
+  isConnected
+  id
 }
 
 # A custom emoji.
@@ -151,8 +174,7 @@ fragment Emoji on Emoji {
   url
   # The emoji's name.
   name
-  # The last time at which the entity was meaningfully updated, i.e. for all changes of syncable properties except those
-  #     for which updates should not produce an update to updatedAt (see skipUpdatedAtKeys). This is the same as the creation time if the entity hasn't
+  # The last time at which the entity was meaningfully updated. This is the same as the creation time if the entity hasn't
   #     been updated after creation.
   updatedAt
   # The source of the emoji.
@@ -176,6 +198,10 @@ fragment CustomViewNotificationSubscription on CustomViewNotificationSubscriptio
   cycle {
     id
   }
+  # The contextual initiative view associated with the notification subscription.
+  initiative {
+    id
+  }
   # The contextual label view associated with the notification subscription.
   label {
     id
@@ -188,8 +214,7 @@ fragment CustomViewNotificationSubscription on CustomViewNotificationSubscriptio
   customView {
     id
   }
-  # The last time at which the entity was meaningfully updated, i.e. for all changes of syncable properties except those
-  #     for which updates should not produce an update to updatedAt (see skipUpdatedAtKeys). This is the same as the creation time if the entity hasn't
+  # The last time at which the entity was meaningfully updated. This is the same as the creation time if the entity hasn't
   #     been updated after creation.
   updatedAt
   # The team associated with the notification subscription.
@@ -233,6 +258,8 @@ fragment CustomView on CustomView {
   userViewPreferences {
     ...ViewPreferences
   }
+  # The custom view's unique URL slug.
+  slugId
   # The description of the custom view.
   description
   # The filter applied to issues in the custom view.
@@ -243,8 +270,7 @@ fragment CustomView on CustomView {
   filters
   # The icon of the custom view.
   icon
-  # The last time at which the entity was meaningfully updated, i.e. for all changes of syncable properties except those
-  #     for which updates should not produce an update to updatedAt (see skipUpdatedAtKeys). This is the same as the creation time if the entity hasn't
+  # The last time at which the entity was meaningfully updated. This is the same as the creation time if the entity hasn't
   #     been updated after creation.
   updatedAt
   # The model name of the custom view.
@@ -281,11 +307,149 @@ fragment CustomView on CustomView {
   shared
 }
 
+# A customer need, expressed through a reference to an issue, project, or comment.
+fragment CustomerNeed on CustomerNeed {
+  __typename
+  # The attachment this need is referencing.
+  attachment {
+    id
+  }
+  # The comment this need is referencing.
+  comment {
+    id
+  }
+  # The creator of the customer need.
+  creator {
+    id
+  }
+  # The customer that this need is attached to.
+  customer {
+    id
+  }
+  # The issue this need is referencing.
+  issue {
+    id
+  }
+  # The last time at which the entity was meaningfully updated. This is the same as the creation time if the entity hasn't
+  #     been updated after creation.
+  updatedAt
+  # The need content in markdown format.
+  body
+  # The project this need is referencing.
+  project {
+    id
+  }
+  # The time at which the entity was archived. Null if the entity has not been archived.
+  archivedAt
+  # The time at which the entity was created.
+  createdAt
+  # The unique identifier of the entity.
+  id
+  # Whether the customer need is important or not. 0 = Not important, 1 = Important.
+  priority
+  # [DEPRECATED] Optional URL to the source of the customer need. Used when manually creating a need.
+  url
+}
+
+# A customer status.
+fragment CustomerStatus on CustomerStatus {
+  __typename
+  # Description of the status.
+  description
+  # The UI color of the status as a HEX string.
+  color
+  # The last time at which the entity was meaningfully updated. This is the same as the creation time if the entity hasn't
+  #     been updated after creation.
+  updatedAt
+  # The name of the status.
+  name
+  # The position of the status in the workspace's customers flow.
+  position
+  # The time at which the entity was archived. Null if the entity has not been archived.
+  archivedAt
+  # The time at which the entity was created.
+  createdAt
+  # The type of the customer status.
+  type
+  # The unique identifier of the entity.
+  id
+}
+
+# A customer tier.
+fragment CustomerTier on CustomerTier {
+  __typename
+  # Description of the tier.
+  description
+  # The UI color of the tier as a HEX string.
+  color
+  # The display name of the tier.
+  displayName
+  # The last time at which the entity was meaningfully updated. This is the same as the creation time if the entity hasn't
+  #     been updated after creation.
+  updatedAt
+  # The name of the tier.
+  name
+  # The position of the tier in the workspace's customers flow.
+  position
+  # The time at which the entity was archived. Null if the entity has not been archived.
+  archivedAt
+  # The time at which the entity was created.
+  createdAt
+  # The unique identifier of the entity.
+  id
+}
+
+# A customer whose needs will be tied to issues or projects.
+fragment Customer on Customer {
+  __typename
+  # The ID of the Slack channel used to interact with the customer.
+  slackChannelId
+  # The annual revenue generated by the customer.
+  revenue
+  # The approximate number of needs of the customer.
+  approximateNeedCount
+  # The current status of the customer.
+  status {
+    id
+  }
+  # The customer's logo URL.
+  logoUrl
+  # The customer's name.
+  name
+  # The domains associated with this customer.
+  domains
+  # The ids of the customers in external systems.
+  externalIds
+  # The last time at which the entity was meaningfully updated. This is the same as the creation time if the entity hasn't
+  #     been updated after creation.
+  updatedAt
+  # The size of the customer.
+  size
+  # The tier of the customer.
+  tier {
+    id
+  }
+  # The time at which the entity was archived. Null if the entity has not been archived.
+  archivedAt
+  # The time at which the entity was created.
+  createdAt
+  # The unique identifier of the entity.
+  id
+  # The user who owns the customer.
+  owner {
+    id
+  }
+}
+
 # A cycle notification subscription.
 fragment CycleNotificationSubscription on CycleNotificationSubscription {
   __typename
   # The contextual custom view associated with the notification subscription.
   customView {
+    id
+  }
+  # The contextual initiative view associated with the notification subscription.
+  initiative {
     id
   }
   # The contextual label view associated with the notification subscription.
@@ -300,8 +464,7 @@ fragment CycleNotificationSubscription on CycleNotificationSubscription {
   cycle {
     id
   }
-  # The last time at which the entity was meaningfully updated, i.e. for all changes of syncable properties except those
-  #     for which updates should not produce an update to updatedAt (see skipUpdatedAtKeys). This is the same as the creation time if the entity hasn't
+  # The last time at which the entity was meaningfully updated. This is the same as the creation time if the entity hasn't
   #     been updated after creation.
   updatedAt
   # The team associated with the notification subscription.
@@ -335,12 +498,9 @@ fragment CycleNotificationSubscription on CycleNotificationSubscription {
 # A diary entry
 fragment DiaryEntry on DiaryEntry {
   __typename
-  # The canonical url for the DiaryEntry.
-  url
   # The date for which the entry is created
   date
-  # The last time at which the entity was meaningfully updated, i.e. for all changes of syncable properties except those
-  #     for which updates should not produce an update to updatedAt (see skipUpdatedAtKeys). This is the same as the creation time if the entity hasn't
+  # The last time at which the entity was meaningfully updated. This is the same as the creation time if the entity hasn't
   #     been updated after creation.
   updatedAt
   # The time at which the entity was archived. Null if the entity has not been archived.
@@ -366,12 +526,15 @@ fragment DocumentContent on DocumentContent {
   document {
     id
   }
+  # The initiative that the content is associated with.
+  initiative {
+    id
+  }
   # The issue that the content is associated with.
   issue {
     id
   }
-  # The last time at which the entity was meaningfully updated, i.e. for all changes of syncable properties except those
-  #     for which updates should not produce an update to updatedAt (see skipUpdatedAtKeys). This is the same as the creation time if the entity hasn't
+  # The last time at which the entity was meaningfully updated. This is the same as the creation time if the entity hasn't
   #     been updated after creation.
   updatedAt
   # The project milestone that the content is associated with.
@@ -401,8 +564,7 @@ fragment DocumentContentHistory on DocumentContentHistory {
   documentContent {
     ...DocumentContent
   }
-  # The last time at which the entity was meaningfully updated, i.e. for all changes of syncable properties except those
-  #     for which updates should not produce an update to updatedAt (see skipUpdatedAtKeys). This is the same as the creation time if the entity hasn't
+  # The last time at which the entity was meaningfully updated. This is the same as the creation time if the entity hasn't
   #     been updated after creation.
   updatedAt
   # The time at which the entity was archived. Null if the entity has not been archived.
@@ -418,8 +580,16 @@ fragment DocumentContentHistory on DocumentContentHistory {
 # A document related notification.
 fragment DocumentNotification on DocumentNotification {
   __typename
+  # Name of the reaction emoji related to the notification.
+  reactionEmoji
   # Notification type.
   type
+  # Related comment ID. Null if the notification is not related to a comment.
+  commentId
+  # Related document ID.
+  documentId
+  # Related parent comment ID. Null if the notification is not related to a comment.
+  parentCommentId
   # The bot that caused the notification.
   botActor {
     ...ActorBot
@@ -428,8 +598,7 @@ fragment DocumentNotification on DocumentNotification {
   externalUserActor {
     id
   }
-  # The last time at which the entity was meaningfully updated, i.e. for all changes of syncable properties except those
-  #     for which updates should not produce an update to updatedAt (see skipUpdatedAtKeys). This is the same as the creation time if the entity hasn't
+  # The last time at which the entity was meaningfully updated. This is the same as the creation time if the entity hasn't
   #     been updated after creation.
   updatedAt
   # The time at when an email reminder for this notification was sent to the user. Null, if no email
@@ -460,6 +629,10 @@ fragment DocumentNotification on DocumentNotification {
 # A document that can be attached to different entities.
 fragment Document on Document {
   __typename
+  # A flag that indicates whether the document is in the trash bin.
+  trashed
+  # The ID of the document content associated with the document.
+  documentContentId
   # The canonical url for the document.
   url
   # The color of the icon.
@@ -476,8 +649,7 @@ fragment Document on Document {
   lastAppliedTemplate {
     id
   }
-  # The last time at which the entity was meaningfully updated, i.e. for all changes of syncable properties except those
-  #     for which updates should not produce an update to updatedAt (see skipUpdatedAtKeys). This is the same as the creation time if the entity hasn't
+  # The last time at which the entity was meaningfully updated. This is the same as the creation time if the entity hasn't
   #     been updated after creation.
   updatedAt
   # The order of the item in the resources list.
@@ -508,12 +680,29 @@ fragment Document on Document {
 # project to a roadmap for example.
 fragment Facet on Facet {
   __typename
-  # The last time at which the entity was meaningfully updated, i.e. for all changes of syncable properties except those
-  #     for which updates should not produce an update to updatedAt (see skipUpdatedAtKeys). This is the same as the creation time if the entity hasn't
+  # The last time at which the entity was meaningfully updated. This is the same as the creation time if the entity hasn't
   #     been updated after creation.
   updatedAt
+  # The owning initiative.
+  sourceInitiative {
+    id
+  }
+  # The owning page.
+  sourcePage
+  # The owning project.
+  sourceProject {
+    id
+  }
+  # The owning team.
+  sourceTeam {
+    id
+  }
   # The sort order of the facet.
   sortOrder
+  # The targeted custom view.
+  targetCustomView {
+    id
+  }
   # The time at which the entity was archived. Null if the entity has not been archived.
   archivedAt
   # The time at which the entity was created.
@@ -522,8 +711,102 @@ fragment Facet on Facet {
   id
 }
 
+# A feature flag for a project or an issue.
+fragment FeatureFlag on FeatureFlag {
+  __typename
+  # Date when the stage was last changed.
+  lastStageUpdatedAt
+  # The description of the feature flag.
+  description
+  # The integration providing the feature flag.
+  integration {
+    id
+  }
+  # The issue the feature flag is associated with.
+  issue {
+    id
+  }
+  # The last time at which the entity was meaningfully updated. This is the same as the creation time if the entity hasn't
+  #     been updated after creation.
+  updatedAt
+  # The pending rollout stage for the feature flag.
+  pendingRolloutStage {
+    ...FeatureFlagRolloutStage
+  }
+  # The project the feature flag is associated with.
+  project {
+    id
+  }
+  # The rollout stage of the feature flag.
+  rolloutStage {
+    ...FeatureFlagRolloutStage
+  }
+  # The status of the feature flag.
+  status
+  # The time at which the entity was archived. Null if the entity has not been archived.
+  archivedAt
+  # The time at which the entity was created.
+  createdAt
+  # The unique identifier of the entity.
+  id
+  # The unique key as defined by the feature flag provider.
+  key
+  # The user who created the feature flag.
+  creator {
+    id
+  }
+  # The user who last changed the stage of the feature flag.
+  lastStageUpdatedBy {
+    id
+  }
+  # Url to the feature flag provider's page about the feature flag.
+  externalUrl
+  # Whether the feature flag is enabled.
+  isEnabled
+}
+
+# A general purpose draft. Used for comments, project updates, etc.
+fragment Draft on Draft {
+  __typename
+  # Additional properties for the draft.
+  data
+  # The comment for which this is a draft comment reply.
+  parentComment {
+    id
+  }
+  # The issue for which this is a draft comment.
+  issue {
+    id
+  }
+  # The last time at which the entity was meaningfully updated. This is the same as the creation time if the entity hasn't
+  #     been updated after creation.
+  updatedAt
+  # The project for which this is a draft project update.
+  project {
+    id
+  }
+  # The project update for which this is a draft comment.
+  projectUpdate {
+    id
+  }
+  # The text content as a Prosemirror document.
+  bodyData
+  # The time at which the entity was archived. Null if the entity has not been archived.
+  archivedAt
+  # The time at which the entity was created.
+  createdAt
+  # The unique identifier of the entity.
+  id
+  # The user who created the draft.
+  user {
+    id
+  }
+  # Whether the draft was autogenerated for the user.
+  isAutogenerated
+}
+
 # A generic payload return from entity archive mutations.
-fragment AttachmentArchivePayload on AttachmentArchivePayload {
+fragment CustomerNeedArchivePayload on CustomerNeedArchivePayload {
   __typename
   # The archived/unarchived entity. Null if entity was deleted.
   entity {
@@ -549,8 +832,25 @@ fragment CycleArchivePayload on CycleArchivePayload {
 }
 
 # A generic payload return from entity archive mutations.
+fragment DocumentArchivePayload on DocumentArchivePayload {
+  __typename
+  # The archived/unarchived entity. Null if entity was deleted.
+  entity {
+    id
+  }
+  # The identifier of the last sync operation.
+  lastSyncId
+  # Whether the operation was successful.
+  success
+}
+
+# A generic payload return from entity archive mutations.
 fragment InitiativeArchivePayload on InitiativeArchivePayload {
   __typename
+  # The archived/unarchived entity. Null if entity was deleted.
+  entity {
+    id
+  }
   # The identifier of the last sync operation.
   lastSyncId
   # Whether the operation was successful.
@@ -585,6 +885,32 @@ fragment NotificationArchivePayload on NotificationArchivePayload {
 
 # A generic payload return from entity archive mutations.
 fragment ProjectArchivePayload on ProjectArchivePayload {
+  __typename
+  # The archived/unarchived entity. Null if entity was deleted.
+  entity {
+    id
+  }
+  # The identifier of the last sync operation.
+  lastSyncId
+  # Whether the operation was successful.
+  success
+}
+
+# A generic payload return from entity archive mutations.
+fragment ProjectStatusArchivePayload on ProjectStatusArchivePayload {
+  __typename
+  # The archived/unarchived entity. Null if entity was deleted.
+  entity {
+    id
+  }
+  # The identifier of the last sync operation.
+  lastSyncId
+  # Whether the operation was successful.
+  success
+}
+
+# A generic payload return from entity archive mutations.
+fragment ProjectUpdateArchivePayload on ProjectUpdateArchivePayload {
   __typename
   # The archived/unarchived entity. Null if entity was deleted.
   entity {
@@ -643,8 +969,8 @@ fragment ArchivePayload on ArchivePayload {
   # Whether the operation was successful.
   success
 
-  ... on AttachmentArchivePayload {
-    ...AttachmentArchivePayload
+  ... on CustomerNeedArchivePayload {
+    ...CustomerNeedArchivePayload
   }
 
   ... on CycleArchivePayload {
@@ -653,6 +979,10 @@ fragment ArchivePayload on ArchivePayload {
 
   ... on DeletePayload {
     ...DeletePayload
+  }
+
+  ... on DocumentArchivePayload {
+    ...DocumentArchivePayload
   }
 
   ... on InitiativeArchivePayload {
@@ -669,6 +999,14 @@ fragment ArchivePayload on ArchivePayload {
 
   ... on ProjectArchivePayload {
     ...ProjectArchivePayload
+  }
+
+  ... on ProjectStatusArchivePayload {
+    ...ProjectStatusArchivePayload
+  }
+
+  ... on ProjectUpdateArchivePayload {
+    ...ProjectUpdateArchivePayload
   }
 
   ... on RoadmapArchivePayload {
@@ -706,6 +1044,10 @@ fragment LabelNotificationSubscription on LabelNotificationSubscription {
   cycle {
     id
   }
+  # The contextual initiative view associated with the notification subscription.
+  initiative {
+    id
+  }
   # The contextual project view associated with the notification subscription.
   project {
     id
@@ -714,8 +1056,7 @@ fragment LabelNotificationSubscription on LabelNotificationSubscription {
   label {
     id
   }
-  # The last time at which the entity was meaningfully updated, i.e. for all changes of syncable properties except those
-  #     for which updates should not produce an update to updatedAt (see skipUpdatedAtKeys). This is the same as the creation time if the entity hasn't
+  # The last time at which the entity was meaningfully updated. This is the same as the creation time if the entity hasn't
   #     been updated after creation.
   updatedAt
   # The team associated with the notification subscription.
@@ -749,8 +1090,11 @@ fragment LabelNotificationSubscription on LabelNotificationSubscription {
 # A milestone for a project.
 fragment ProjectMilestone on ProjectMilestone {
   __typename
-  # The last time at which the entity was meaningfully updated, i.e. for all changes of syncable properties except those
-  #     for which updates should not produce an update to updatedAt (see skipUpdatedAtKeys). This is the same as the creation time if the entity hasn't
+  # The content of the project milestone description.
+  documentContent {
+    ...DocumentContent
+  }
+  # The last time at which the entity was meaningfully updated. This is the same as the creation time if the entity hasn't
   #     been updated after creation.
   updatedAt
   # The name of the project milestone.
@@ -759,12 +1103,16 @@ fragment ProjectMilestone on ProjectMilestone {
   sortOrder
   # The planned completion date of the milestone.
   targetDate
+  # The progress % of the project milestone.
+  progress
   # The project milestone's description in markdown format.
   description
   # The project of the milestone.
   project {
     id
   }
+  # The status of the project milestone.
+  status
   # The time at which the entity was archived. Null if the entity has not been archived.
   archivedAt
   # The time at which the entity was created.
@@ -786,8 +1134,7 @@ fragment Notification on Notification {
   externalUserActor {
     id
   }
-  # The last time at which the entity was meaningfully updated, i.e. for all changes of syncable properties except those
-  #     for which updates should not produce an update to updatedAt (see skipUpdatedAtKeys). This is the same as the creation time if the entity hasn't
+  # The last time at which the entity was meaningfully updated. This is the same as the creation time if the entity hasn't
   #     been updated after creation.
   updatedAt
   # The time at when an email reminder for this notification was sent to the user. Null, if no email
@@ -846,12 +1193,15 @@ fragment ProjectNotificationSubscription on ProjectNotificationSubscription {
   cycle {
     id
   }
+  # The contextual initiative view associated with the notification subscription.
+  initiative {
+    id
+  }
   # The contextual label view associated with the notification subscription.
   label {
     id
   }
-  # The last time at which the entity was meaningfully updated, i.e. for all changes of syncable properties except those
-  #     for which updates should not produce an update to updatedAt (see skipUpdatedAtKeys). This is the same as the creation time if the entity hasn't
+  # The last time at which the entity was meaningfully updated. This is the same as the creation time if the entity hasn't
   #     been updated after creation.
   updatedAt
   # The project subscribed to.
@@ -889,20 +1239,47 @@ fragment ProjectNotificationSubscription on ProjectNotificationSubscription {
 # A project related notification.
 fragment ProjectNotification on ProjectNotification {
   __typename
+  # Name of the reaction emoji related to the notification.
+  reactionEmoji
   # Notification type.
   type
+  # Related comment ID. Null if the notification is not related to a comment.
+  commentId
+  # Related parent comment ID. Null if the notification is not related to a comment.
+  parentCommentId
+  # Related project ID.
+  projectId
+  # Related project milestone ID.
+  projectMilestoneId
+  # Related project update ID.
+  projectUpdateId
   # The bot that caused the notification.
   botActor {
     ...ActorBot
+  }
+  # The comment related to the notification.
+  comment {
+    id
+  }
+  # The document related to the notification.
+  document {
+    id
   }
   # The external user that caused the notification.
   externalUserActor {
     id
   }
-  # The last time at which the entity was meaningfully updated, i.e. for all changes of syncable properties except those
-  #     for which updates should not produce an update to updatedAt (see skipUpdatedAtKeys). This is the same as the creation time if the entity hasn't
+  # The initiative related to the notification.
+  initiative {
+    id
+  }
+  # The last time at which the entity was meaningfully updated. This is the same as the creation time if the entity hasn't
   #     been updated after creation.
   updatedAt
+  # The parent comment related to the notification, if a notification is a reply comment notification.
+  parentComment {
+    id
+  }
   # The project related to the notification.
   project {
     id
@@ -943,8 +1320,7 @@ fragment ProjectStatus on ProjectStatus {
   description
   # The UI color of the status as a HEX string.
   color
-  # The last time at which the entity was meaningfully updated, i.e. for all changes of syncable properties except those
-  #     for which updates should not produce an update to updatedAt (see skipUpdatedAtKeys). This is the same as the creation time if the entity hasn't
+  # The last time at which the entity was meaningfully updated. This is the same as the creation time if the entity hasn't
   #     been updated after creation.
   updatedAt
   # The name of the status.
@@ -974,18 +1350,23 @@ fragment Project on Project {
   integrationsSettings {
     id
   }
+  # The content of the project description.
+  documentContent {
+    ...DocumentContent
+  }
   # The estimated completion date of the project.
   targetDate
   # The estimated start date of the project.
   startDate
+  # The health of the project.
+  health
   # The icon of the project.
   icon
   # The last template that was applied to this project.
   lastAppliedTemplate {
     id
   }
-  # The last time at which the entity was meaningfully updated, i.e. for all changes of syncable properties except those
-  #     for which updates should not produce an update to updatedAt (see skipUpdatedAtKeys). This is the same as the creation time if the entity hasn't
+  # The last time at which the entity was meaningfully updated. This is the same as the creation time if the entity hasn't
   #     been updated after creation.
   updatedAt
   # The number of completed estimation points after each week.
@@ -998,6 +1379,8 @@ fragment Project on Project {
   progress
   # The overall scope (total estimate points) of the project.
   scope
+  # The priority of the project. 0 = No priority, 1 = Urgent, 2 = High, 3 = Normal, 4 = Low.
+  priority
   # The project lead.
   lead {
     id
@@ -1020,12 +1403,14 @@ fragment Project on Project {
   sortOrder
   # The status that the project is associated with.
   status {
-    ...ProjectStatus
+    id
   }
   # The time at which the entity was archived. Null if the entity has not been archived.
   archivedAt
   # The time at which the entity was created.
   createdAt
+  # The time at which the project health was updated.
+  healthUpdatedAt
   # The time at which the project was automatically archived by the auto pruning process.
   autoArchivedAt
   # The time at which the project was moved into canceled state.
@@ -1069,12 +1454,15 @@ fragment Reaction on Reaction {
   comment {
     id
   }
+  # The external user that created the reaction.
+  externalUser {
+    id
+  }
   # The issue that the reaction is associated with.
   issue {
     id
   }
-  # The last time at which the entity was meaningfully updated, i.e. for all changes of syncable properties except those
-  #     for which updates should not produce an update to updatedAt (see skipUpdatedAtKeys). This is the same as the creation time if the entity hasn't
+  # The last time at which the entity was meaningfully updated. This is the same as the creation time if the entity hasn't
   #     been updated after creation.
   updatedAt
   # The project update that the reaction is associated with.
@@ -1104,6 +1492,14 @@ fragment IssueHistory on IssueHistory {
   addedLabelIds
   # ID's of labels that were removed.
   removedLabelIds
+  # The actor that performed the actions. This field may be empty in the case of integrations or automations.
+  actor {
+    id
+  }
+  # The actors that edited the description of the issue, if any.
+  descriptionUpdatedBy {
+    ...User
+  }
   # The actors that performed the actions. This field may be empty in the case of integrations or automations.
   actors {
     ...User
@@ -1112,8 +1508,18 @@ fragment IssueHistory on IssueHistory {
   botActor {
     ...ActorBot
   }
+  # The cycle that the issue was moved from.
+  fromCycle {
+    id
+  }
+  # The cycle that the issue was moved to.
+  toCycle {
+    id
+  }
   # The id of linked attachment.
   attachmentId
+  # The id of linked customer need.
+  customerNeedId
   # The id of new cycle of the issue.
   toCycleId
   # The id of new parent of the issue.
@@ -1158,55 +1564,46 @@ fragment IssueHistory on IssueHistory {
   removedLabels {
     ...IssueLabel
   }
-  # The last time at which the entity was meaningfully updated, i.e. for all changes of syncable properties except those
-  #     for which updates should not produce an update to updatedAt (see skipUpdatedAtKeys). This is the same as the creation time if the entity hasn't
+  # The last time at which the entity was meaningfully updated. This is the same as the creation time if the entity hasn't
   #     been updated after creation.
   updatedAt
   # The linked attachment.
   attachment {
     id
   }
-  # The new cycle of the issue.
-  toCycle {
-    id
-  }
-  # The new parent of the issue.
-  toParent {
-    id
-  }
   # The new project created from the issue.
   toConvertedProject {
     id
   }
-  # The new project of the issue.
-  toProject {
-    id
-  }
-  # The new workflow state of the issue.
-  toState {
-    id
-  }
-  # The previous cycle of the issue.
-  fromCycle {
-    id
-  }
-  # The previous parent of the issue.
+  # The parent issue that the issue was moved from.
   fromParent {
     id
   }
-  # The previous project of the issue.
+  # The parent issue that the issue was moved to.
+  toParent {
+    id
+  }
+  # The project that the issue was moved from.
   fromProject {
     id
   }
-  # The previous workflow state of the issue.
+  # The project that the issue was moved to.
+  toProject {
+    id
+  }
+  # The state that the issue was moved from.
   fromState {
     id
   }
-  # The team from which the issue was moved from.
+  # The state that the issue was moved to.
+  toState {
+    id
+  }
+  # The team that the issue was moved from.
   fromTeam {
     id
   }
-  # The team to which the issue was moved to.
+  # The team that the issue was moved to.
   toTeam {
     id
   }
@@ -1216,16 +1613,12 @@ fragment IssueHistory on IssueHistory {
   createdAt
   # The unique identifier of the entity.
   id
-  # The user from whom the issue was re-assigned from.
-  fromAssignee {
-    id
-  }
-  # The user to whom the issue was assigned to.
+  # The user that was assigned to the issue.
   toAssignee {
     id
   }
-  # The user who made these changes. If null, possibly means that the change made by an integration.
-  actor {
+  # The user that was unassigned from the issue.
+  fromAssignee {
     id
   }
   # The users that were notified of the issue.
@@ -1267,8 +1660,7 @@ fragment IssueRelation on IssueRelation {
   issue {
     id
   }
-  # The last time at which the entity was meaningfully updated, i.e. for all changes of syncable properties except those
-  #     for which updates should not produce an update to updatedAt (see skipUpdatedAtKeys). This is the same as the creation time if the entity hasn't
+  # The last time at which the entity was meaningfully updated. This is the same as the creation time if the entity hasn't
   #     been updated after creation.
   updatedAt
   # The related issue.
@@ -1288,10 +1680,13 @@ fragment IssueRelation on IssueRelation {
 # A relation between two projects.
 fragment ProjectRelation on ProjectRelation {
   __typename
-  # The last time at which the entity was meaningfully updated, i.e. for all changes of syncable properties except those
-  #     for which updates should not produce an update to updatedAt (see skipUpdatedAtKeys). This is the same as the creation time if the entity hasn't
+  # The last time at which the entity was meaningfully updated. This is the same as the creation time if the entity hasn't
   #     been updated after creation.
   updatedAt
+  # The last user who created or modified the relation.
+  user {
+    id
+  }
   # The milestone within the project whose relationship is being described.
   projectMilestone {
     id
@@ -1335,8 +1730,7 @@ fragment Reminder on Reminder {
   issueId {
     id
   }
-  # The last time at which the entity was meaningfully updated, i.e. for all changes of syncable properties except those
-  #     for which updates should not produce an update to updatedAt (see skipUpdatedAtKeys). This is the same as the creation time if the entity hasn't
+  # The last time at which the entity was meaningfully updated. This is the same as the creation time if the entity hasn't
   #     been updated after creation.
   updatedAt
   # The project that the reminder is associated with.
@@ -1366,8 +1760,7 @@ fragment Roadmap on Roadmap {
   url
   # The description of the roadmap.
   description
-  # The last time at which the entity was meaningfully updated, i.e. for all changes of syncable properties except those
-  #     for which updates should not produce an update to updatedAt (see skipUpdatedAtKeys). This is the same as the creation time if the entity hasn't
+  # The last time at which the entity was meaningfully updated. This is the same as the creation time if the entity hasn't
   #     been updated after creation.
   updatedAt
   # The name of the roadmap.
@@ -1394,6 +1787,34 @@ fragment Roadmap on Roadmap {
   }
 }
 
+# A rollout stage for a feature flag.
+fragment FeatureFlagRolloutStage on FeatureFlagRolloutStage {
+  __typename
+  # The description of the rollout stage.
+  description
+  # The integration providing the feature flag.
+  integration {
+    id
+  }
+  # The last time at which the entity was meaningfully updated. This is the same as the creation time if the entity hasn't
+  #     been updated after creation.
+  updatedAt
+  # The name of the rollout stage.
+  name
+  # The order of the rollout stages within an organization.
+  sortOrder
+  # The time at which the entity was archived. Null if the entity has not been archived.
+  archivedAt
+  # The time at which the entity was created.
+  createdAt
+  # The type of the feature flag rollout stage.
+  type
+  # The unique identifier of the entity.
+  id
+  # Which feature flag provider segments this rollout stage is associated with.
+  segmentKeys
+}
+
 # A set of issues to be resolved in a specified amount of time.
 fragment Cycle on Cycle {
   __typename
@@ -1405,8 +1826,7 @@ fragment Cycle on Cycle {
   description
   # The end time of the cycle.
   endsAt
-  # The last time at which the entity was meaningfully updated, i.e. for all changes of syncable properties except those
-  #     for which updates should not produce an update to updatedAt (see skipUpdatedAtKeys). This is the same as the creation time if the entity hasn't
+  # The last time at which the entity was meaningfully updated. This is the same as the creation time if the entity hasn't
   #     been updated after creation.
   updatedAt
   # The number of completed estimation points after each day.
@@ -1444,12 +1864,15 @@ fragment WorkflowState on WorkflowState {
   __typename
   # Description of the state.
   description
-  # The last time at which the entity was meaningfully updated, i.e. for all changes of syncable properties except those
-  #     for which updates should not produce an update to updatedAt (see skipUpdatedAtKeys). This is the same as the creation time if the entity hasn't
+  # The last time at which the entity was meaningfully updated. This is the same as the creation time if the entity hasn't
   #     been updated after creation.
   updatedAt
   # The position of the state in the team flow.
   position
+  # The state inherited from
+  inheritedFrom {
+    id
+  }
   # The state's UI color as a HEX string.
   color
   # The state's name.
@@ -1479,6 +1902,10 @@ fragment TeamNotificationSubscription on TeamNotificationSubscription {
   cycle {
     id
   }
+  # The contextual initiative view associated with the notification subscription.
+  initiative {
+    id
+  }
   # The contextual label view associated with the notification subscription.
   label {
     id
@@ -1487,8 +1914,7 @@ fragment TeamNotificationSubscription on TeamNotificationSubscription {
   project {
     id
   }
-  # The last time at which the entity was meaningfully updated, i.e. for all changes of syncable properties except those
-  #     for which updates should not produce an update to updatedAt (see skipUpdatedAtKeys). This is the same as the creation time if the entity hasn't
+  # The last time at which the entity was meaningfully updated. This is the same as the creation time if the entity hasn't
   #     been updated after creation.
   updatedAt
   # The team subscribed to.
@@ -1528,8 +1954,7 @@ fragment TriageResponsibility on TriageResponsibility {
   }
   # The action to take when an issue is added to triage.
   action
-  # The last time at which the entity was meaningfully updated, i.e. for all changes of syncable properties except those
-  #     for which updates should not produce an update to updatedAt (see skipUpdatedAtKeys). This is the same as the creation time if the entity hasn't
+  # The last time at which the entity was meaningfully updated. This is the same as the creation time if the entity hasn't
   #     been updated after creation.
   updatedAt
   # The team to which the triage responsibility belongs to.
@@ -1561,12 +1986,15 @@ fragment Template on Template {
   description
   # The entity type this template is for.
   type
-  # The last time at which the entity was meaningfully updated, i.e. for all changes of syncable properties except those
-  #     for which updates should not produce an update to updatedAt (see skipUpdatedAtKeys). This is the same as the creation time if the entity hasn't
+  # The last time at which the entity was meaningfully updated. This is the same as the creation time if the entity hasn't
   #     been updated after creation.
   updatedAt
   # The name of the template.
   name
+  # The original template inherited from.
+  inheritedFrom {
+    id
+  }
   # The sort order of the template.
   sortOrder
   # The team that the template is associated with. If null, the template is global to the workspace.
@@ -1589,45 +2017,6 @@ fragment Template on Template {
   }
 }
 
-# A text draft, used for comments and project updates.
-fragment TextDraft on TextDraft {
-  __typename
-  # The comment for which this is a draft comment reply.
-  parentComment {
-    id
-  }
-  # The issue for which this is a draft comment.
-  issue {
-    id
-  }
-  # The last time at which the entity was meaningfully updated, i.e. for all changes of syncable properties except those
-  #     for which updates should not produce an update to updatedAt (see skipUpdatedAtKeys). This is the same as the creation time if the entity hasn't
-  #     been updated after creation.
-  updatedAt
-  # The project for which this is a draft project update.
-  project {
-    id
-  }
-  # The project update for which this is a draft comment.
-  projectUpdate {
-    id
-  }
-  # The text content as a Prosemirror document.
-  bodyData
-  # The time at which the entity was archived. Null if the entity has not been archived.
-  archivedAt
-  # The time at which the entity was created.
-  createdAt
-  # The unique identifier of the entity.
-  id
-  # The user who created the draft.
-  user {
-    id
-  }
-  # Whether the draft was autogenerated for the user.
-  isAutogenerated
-}
-
 # A time schedule.
 fragment TimeSchedule on TimeSchedule {
   __typename
@@ -1639,8 +2028,7 @@ fragment TimeSchedule on TimeSchedule {
   }
   # The identifier of the external schedule.
   externalId
-  # The last time at which the entity was meaningfully updated, i.e. for all changes of syncable properties except those
-  #     for which updates should not produce an update to updatedAt (see skipUpdatedAtKeys). This is the same as the creation time if the entity hasn't
+  # The last time at which the entity was meaningfully updated. This is the same as the creation time if the entity hasn't
   #     been updated after creation.
   updatedAt
   # The name of the schedule.
@@ -1666,8 +2054,7 @@ fragment GitAutomationState on GitAutomationState {
   }
   # The event that triggers the automation.
   event
-  # The last time at which the entity was meaningfully updated, i.e. for all changes of syncable properties except those
-  #     for which updates should not produce an update to updatedAt (see skipUpdatedAtKeys). This is the same as the creation time if the entity hasn't
+  # The last time at which the entity was meaningfully updated. This is the same as the creation time if the entity hasn't
   #     been updated after creation.
   updatedAt
   # The target branch associated to this automation state.
@@ -1686,45 +2073,6 @@ fragment GitAutomationState on GitAutomationState {
   id
   # [DEPRECATED] The target branch, if null, the automation will be triggered on any branch.
   branchPattern
-}
-
-# A update associated with an project.
-fragment ProjectUpdate on ProjectUpdate {
-  __typename
-  # Emoji reaction summary, grouped by emoji type.
-  reactionData
-  # The URL to the project update.
-  url
-  # The diff between the current update and the previous one, formatted as markdown.
-  diffMarkdown
-  # The diff between the current update and the previous one.
-  diff
-  # The health of the project at the time of the update.
-  health
-  # The last time at which the entity was meaningfully updated, i.e. for all changes of syncable properties except those
-  #     for which updates should not produce an update to updatedAt (see skipUpdatedAtKeys). This is the same as the creation time if the entity hasn't
-  #     been updated after creation.
-  updatedAt
-  # The project that the update is associated with.
-  project {
-    id
-  }
-  # The time at which the entity was archived. Null if the entity has not been archived.
-  archivedAt
-  # The time at which the entity was created.
-  createdAt
-  # The time the project update was edited.
-  editedAt
-  # The unique identifier of the entity.
-  id
-  # The update content in markdown format.
-  body
-  # The user who wrote the update.
-  user {
-    id
-  }
-  # Whether project update diff should be hidden.
-  isDiffHidden
 }
 
 # A user account.
@@ -1759,6 +2107,10 @@ fragment UserNotificationSubscription on UserNotificationSubscription {
   cycle {
     id
   }
+  # The contextual initiative view associated with the notification subscription.
+  initiative {
+    id
+  }
   # The contextual label view associated with the notification subscription.
   label {
     id
@@ -1767,8 +2119,7 @@ fragment UserNotificationSubscription on UserNotificationSubscription {
   project {
     id
   }
-  # The last time at which the entity was meaningfully updated, i.e. for all changes of syncable properties except those
-  #     for which updates should not produce an update to updatedAt (see skipUpdatedAtKeys). This is the same as the creation time if the entity hasn't
+  # The last time at which the entity was meaningfully updated. This is the same as the creation time if the entity hasn't
   #     been updated after creation.
   updatedAt
   # The team associated with the notification subscription.
@@ -1836,12 +2187,15 @@ fragment User on User {
   createdIssueCount
   # Reason why is the account disabled.
   disableReason
+  # The background color of the avatar for users without set avatar.
+  avatarBackgroundColor
   # The emoji to represent the user current status.
   statusEmoji
+  # The initials of the user.
+  initials
   # The label of the user current status.
   statusLabel
-  # The last time at which the entity was meaningfully updated, i.e. for all changes of syncable properties except those
-  #     for which updates should not produce an update to updatedAt (see skipUpdatedAtKeys). This is the same as the creation time if the entity hasn't
+  # The last time at which the entity was meaningfully updated. This is the same as the creation time if the entity hasn't
   #     been updated after creation.
   updatedAt
   # The last time the user was seen online. If null, the user is currently online.
@@ -1876,6 +2230,150 @@ fragment User on User {
   calendarHash
 }
 
+# A user's notification category preferences for a channel.
+fragment PartialNotificationChannelPreferences on PartialNotificationChannelPreferences {
+  __typename
+  # Whether notifications are currently enabled for Slack.
+  slack
+  # Whether notifications are currently enabled for desktop.
+  desktop
+  # Whether notifications are currently enabled for email.
+  email
+  # Whether notifications are currently enabled for mobile.
+  mobile
+}
+
+# A user's notification category preferences.
+fragment NotificationCategoryPreferences on NotificationCategoryPreferences {
+  __typename
+  # The preferences for customer notifications.
+  customers {
+    ...NotificationChannelPreferences
+  }
+  # The preferences for notifications about apps and integrations.
+  appsAndIntegrations {
+    ...NotificationChannelPreferences
+  }
+  # The preferences for notifications about assignments.
+  assignments {
+    ...NotificationChannelPreferences
+  }
+  # The preferences for notifications about comments and replies.
+  commentsAndReplies {
+    ...NotificationChannelPreferences
+  }
+  # The preferences for notifications about document changes.
+  documentChanges {
+    ...NotificationChannelPreferences
+  }
+  # The preferences for notifications about mentions.
+  mentions {
+    ...NotificationChannelPreferences
+  }
+  # The preferences for notifications about posts and updates.
+  postsAndUpdates {
+    ...NotificationChannelPreferences
+  }
+  # The preferences for notifications about reactions.
+  reactions {
+    ...NotificationChannelPreferences
+  }
+  # The preferences for notifications about reminders.
+  reminders {
+    ...NotificationChannelPreferences
+  }
+  # The preferences for notifications about reviews.
+  reviews {
+    ...NotificationChannelPreferences
+  }
+  # The preferences for notifications about status changes.
+  statusChanges {
+    ...NotificationChannelPreferences
+  }
+  # The preferences for notifications about subscriptions.
+  subscriptions {
+    ...NotificationChannelPreferences
+  }
+  # The preferences for system notifications.
+  system {
+    ...NotificationChannelPreferences
+  }
+  # The preferences for triage notifications.
+  triage {
+    ...NotificationChannelPreferences
+  }
+}
+
+# A user's notification category preferences.
+fragment PartialNotificationCategoryPreferences on PartialNotificationCategoryPreferences {
+  __typename
+  # The preferences for notifications about apps and integrations.
+  appsAndIntegrations {
+    ...PartialNotificationChannelPreferences
+  }
+  # The preferences for notifications about assignments.
+  assignments {
+    ...PartialNotificationChannelPreferences
+  }
+  # The preferences for notifications about comments and replies.
+  commentsAndReplies {
+    ...PartialNotificationChannelPreferences
+  }
+  # The preferences for notifications about customers.
+  customers {
+    ...PartialNotificationChannelPreferences
+  }
+  # The preferences for notifications about document changes.
+  documentChanges {
+    ...PartialNotificationChannelPreferences
+  }
+  # The preferences for notifications about mentions.
+  mentions {
+    ...PartialNotificationChannelPreferences
+  }
+  # The preferences for notifications about posts and updates.
+  postsAndUpdates {
+    ...PartialNotificationChannelPreferences
+  }
+  # The preferences for notifications about reactions.
+  reactions {
+    ...PartialNotificationChannelPreferences
+  }
+  # The preferences for notifications about reminders.
+  reminders {
+    ...PartialNotificationChannelPreferences
+  }
+  # The preferences for notifications about reviews.
+  reviews {
+    ...PartialNotificationChannelPreferences
+  }
+  # The preferences for notifications about status changes.
+  statusChanges {
+    ...PartialNotificationChannelPreferences
+  }
+  # The preferences for notifications about subscriptions.
+  subscriptions {
+    ...PartialNotificationChannelPreferences
+  }
+  # The preferences for notifications about triage.
+  triage {
+    ...PartialNotificationChannelPreferences
+  }
+}
+
+# A user's notification channel preferences, indicating if a channel is enabled or not
+fragment NotificationChannelPreferences on NotificationChannelPreferences {
+  __typename
+  # Whether notifications are currently enabled for Slack.
+  slack
+  # Whether notifications are currently enabled for desktop.
+  desktop
+  # Whether notifications are currently enabled for email.
+  email
+  # Whether notifications are currently enabled for mobile.
+  mobile
+}
+
 # A user's notification delivery preferences.
 fragment NotificationDeliveryPreferences on NotificationDeliveryPreferences {
   __typename
@@ -1892,7 +2390,7 @@ fragment NotificationDeliveryPreferencesChannel on NotificationDeliveryPreferenc
   schedule {
     ...NotificationDeliveryPreferencesSchedule
   }
-  # Whether notifications are enabled for this channel.
+  # [DEPRECATED] Whether notifications are enabled for this channel. Use notificationChannelPreferences instead.
   notificationsDisabled
 }
 
@@ -1940,11 +2438,10 @@ fragment NotificationDeliveryPreferencesSchedule on NotificationDeliveryPreferen
   disabled
 }
 
-# A user's web browser push notification subscription.
+# A user's web or mobile push notification subscription.
 fragment PushSubscription on PushSubscription {
   __typename
-  # The last time at which the entity was meaningfully updated, i.e. for all changes of syncable properties except those
-  #     for which updates should not produce an update to updatedAt (see skipUpdatedAtKeys). This is the same as the creation time if the entity hasn't
+  # The last time at which the entity was meaningfully updated. This is the same as the creation time if the entity hasn't
   #     been updated after creation.
   updatedAt
   # The time at which the entity was archived. Null if the entity has not been archived.
@@ -1960,8 +2457,7 @@ fragment Webhook on Webhook {
   __typename
   # Secret token for verifying the origin on the recipient side.
   secret
-  # The last time at which the entity was meaningfully updated, i.e. for all changes of syncable properties except those
-  #     for which updates should not produce an update to updatedAt (see skipUpdatedAtKeys). This is the same as the creation time if the entity hasn't
+  # The last time at which the entity was meaningfully updated. This is the same as the creation time if the entity hasn't
   #     been updated after creation.
   updatedAt
   # The resource types this webhook is subscribed to.
@@ -1995,8 +2491,7 @@ fragment ApiKey on ApiKey {
   __typename
   # The label of the API key.
   label
-  # The last time at which the entity was meaningfully updated, i.e. for all changes of syncable properties except those
-  #     for which updates should not produce an update to updatedAt (see skipUpdatedAtKeys). This is the same as the creation time if the entity hasn't
+  # The last time at which the entity was meaningfully updated. This is the same as the creation time if the entity hasn't
   #     been updated after creation.
   updatedAt
   # The time at which the entity was archived. Null if the entity has not been archived.
@@ -2029,8 +2524,7 @@ fragment AuthEmailIntakeAddress on AuthEmailIntakeAddress {
 # An email address that can be used for submitting issues.
 fragment EmailIntakeAddress on EmailIntakeAddress {
   __typename
-  # The last time at which the entity was meaningfully updated, i.e. for all changes of syncable properties except those
-  #     for which updates should not produce an update to updatedAt (see skipUpdatedAtKeys). This is the same as the creation time if the entity hasn't
+  # The last time at which the entity was meaningfully updated. This is the same as the creation time if the entity hasn't
   #     been updated after creation.
   updatedAt
   # The team that the email address is associated with.
@@ -2069,8 +2563,7 @@ fragment ExternalUser on ExternalUser {
   email
   # The external user's full name.
   name
-  # The last time at which the entity was meaningfully updated, i.e. for all changes of syncable properties except those
-  #     for which updates should not produce an update to updatedAt (see skipUpdatedAtKeys). This is the same as the creation time if the entity hasn't
+  # The last time at which the entity was meaningfully updated. This is the same as the creation time if the entity hasn't
   #     been updated after creation.
   updatedAt
   # The last time the external user was seen interacting with Linear.
@@ -2086,8 +2579,7 @@ fragment ExternalUser on ExternalUser {
 # An external link for a project.
 fragment ProjectLink on ProjectLink {
   __typename
-  # The last time at which the entity was meaningfully updated, i.e. for all changes of syncable properties except those
-  #     for which updates should not produce an update to updatedAt (see skipUpdatedAtKeys). This is the same as the creation time if the entity hasn't
+  # The last time at which the entity was meaningfully updated. This is the same as the creation time if the entity hasn't
   #     been updated after creation.
   updatedAt
   # The link's URL.
@@ -2096,27 +2588,22 @@ fragment ProjectLink on ProjectLink {
   label
   # The order of the item in the project resources list.
   sortOrder
-  # The project that the link is associated with.
-  project {
-    id
-  }
   # The time at which the entity was archived. Null if the entity has not been archived.
   archivedAt
   # The time at which the entity was created.
   createdAt
   # The unique identifier of the entity.
   id
-  # The user who created the link.
-  creator {
-    id
-  }
 }
 
 # An external link for an entity like initiative, etc...
 fragment EntityExternalLink on EntityExternalLink {
   __typename
-  # The last time at which the entity was meaningfully updated, i.e. for all changes of syncable properties except those
-  #     for which updates should not produce an update to updatedAt (see skipUpdatedAtKeys). This is the same as the creation time if the entity hasn't
+  # The initiative that the link is associated with.
+  initiative {
+    id
+  }
+  # The last time at which the entity was meaningfully updated. This is the same as the creation time if the entity hasn't
   #     been updated after creation.
   updatedAt
   # The link's URL.
@@ -2137,6 +2624,26 @@ fragment EntityExternalLink on EntityExternalLink {
   }
 }
 
+# An history associated with a project.
+fragment ProjectHistory on ProjectHistory {
+  __typename
+  # The events that happened while recording that history.
+  entries
+  # The last time at which the entity was meaningfully updated. This is the same as the creation time if the entity hasn't
+  #     been updated after creation.
+  updatedAt
+  # The project that the history is associated with.
+  project {
+    id
+  }
+  # The time at which the entity was archived. Null if the entity has not been archived.
+  archivedAt
+  # The time at which the entity was created.
+  createdAt
+  # The unique identifier of the entity.
+  id
+}
+
 # An import job for data from an external service.
 fragment IssueImport on IssueImport {
   __typename
@@ -2152,10 +2659,11 @@ fragment IssueImport on IssueImport {
   teamName
   # The data mapping configuration for the import job.
   mapping
+  # The display name of the import service.
+  displayName
   # The id for the user that started the job.
   creatorId
-  # The last time at which the entity was meaningfully updated, i.e. for all changes of syncable properties except those
-  #     for which updates should not produce an update to updatedAt (see skipUpdatedAtKeys). This is the same as the creation time if the entity hasn't
+  # The last time at which the entity was meaningfully updated. This is the same as the creation time if the entity hasn't
   #     been updated after creation.
   updatedAt
   # The service from which data will be imported.
@@ -2172,11 +2680,73 @@ fragment IssueImport on IssueImport {
   error
 }
 
+# An initiative notification subscription.
+fragment InitiativeNotificationSubscription on InitiativeNotificationSubscription {
+  __typename
+  # The contextual custom view associated with the notification subscription.
+  customView {
+    id
+  }
+  # The contextual cycle view associated with the notification subscription.
+  cycle {
+    id
+  }
+  # The contextual label view associated with the notification subscription.
+  label {
+    id
+  }
+  # The contextual project view associated with the notification subscription.
+  project {
+    id
+  }
+  # The initiative subscribed to.
+  initiative {
+    id
+  }
+  # The last time at which the entity was meaningfully updated. This is the same as the creation time if the entity hasn't
+  #     been updated after creation.
+  updatedAt
+  # The team associated with the notification subscription.
+  team {
+    id
+  }
+  # The time at which the entity was archived. Null if the entity has not been archived.
+  archivedAt
+  # The time at which the entity was created.
+  createdAt
+  # The type of subscription.
+  notificationSubscriptionTypes
+  # The type of user view to which the notification subscription context is associated with.
+  userContextViewType
+  # The type of view to which the notification subscription context is associated with.
+  contextViewType
+  # The unique identifier of the entity.
+  id
+  # The user that subscribed to receive notifications.
+  subscriber {
+    id
+  }
+  # The user view associated with the notification subscription.
+  user {
+    id
+  }
+  # Whether the subscription is active or not.
+  active
+}
+
 # An initiative related notification.
 fragment InitiativeNotification on InitiativeNotification {
   __typename
+  # Name of the reaction emoji related to the notification.
+  reactionEmoji
   # Notification type.
   type
+  # Related comment ID. Null if the notification is not related to a comment.
+  commentId
+  # Related initiative ID.
+  initiativeId
+  # Related parent comment ID. Null if the notification is not related to a comment.
+  parentCommentId
   # The bot that caused the notification.
   botActor {
     ...ActorBot
@@ -2185,8 +2755,7 @@ fragment InitiativeNotification on InitiativeNotification {
   externalUserActor {
     id
   }
-  # The last time at which the entity was meaningfully updated, i.e. for all changes of syncable properties except those
-  #     for which updates should not produce an update to updatedAt (see skipUpdatedAtKeys). This is the same as the creation time if the entity hasn't
+  # The last time at which the entity was meaningfully updated. This is the same as the creation time if the entity hasn't
   #     been updated after creation.
   updatedAt
   # The time at when an email reminder for this notification was sent to the user. Null, if no email
@@ -2214,13 +2783,62 @@ fragment InitiativeNotification on InitiativeNotification {
   }
 }
 
+# An initiative to group projects.
+fragment Initiative on Initiative {
+  __typename
+  # A flag that indicates whether the initiative is in the trash bin.
+  trashed
+  # Initiative URL.
+  url
+  # The description of the initiative.
+  description
+  # The estimated completion date of the initiative.
+  targetDate
+  # The health of the initiative.
+  health
+  # The icon of the initiative.
+  icon
+  # The initiative's color.
+  color
+  # The initiative's content in markdown format.
+  content
+  # The initiative's unique URL slug.
+  slugId
+  # The last time at which the entity was meaningfully updated. This is the same as the creation time if the entity hasn't
+  #     been updated after creation.
+  updatedAt
+  # The name of the initiative.
+  name
+  # The resolution of the initiative's estimated completion date.
+  targetDateResolution
+  # The sort order of the initiative within the organization.
+  sortOrder
+  # The status of the initiative. One of Planned, Active, Completed
+  status
+  # The time at which the entity was archived. Null if the entity has not been archived.
+  archivedAt
+  # The time at which the entity was created.
+  createdAt
+  # The time at which the initiative health was updated.
+  healthUpdatedAt
+  # The unique identifier of the entity.
+  id
+  # The user who created the initiative.
+  creator {
+    id
+  }
+  # The user who owns the initiative.
+  owner {
+    id
+  }
+}
+
 # An integration with an external service.
 fragment Integration on Integration {
   __typename
   # The integration's type.
   service
-  # The last time at which the entity was meaningfully updated, i.e. for all changes of syncable properties except those
-  #     for which updates should not produce an update to updatedAt (see skipUpdatedAtKeys). This is the same as the creation time if the entity hasn't
+  # The last time at which the entity was meaningfully updated. This is the same as the creation time if the entity hasn't
   #     been updated after creation.
   updatedAt
   # The team that the integration is associated with.
@@ -2257,8 +2875,7 @@ fragment OrganizationInvite on OrganizationInvite {
   external
   # The invitees email address.
   email
-  # The last time at which the entity was meaningfully updated, i.e. for all changes of syncable properties except those
-  #     for which updates should not produce an update to updatedAt (see skipUpdatedAtKeys). This is the same as the creation time if the entity hasn't
+  # The last time at which the entity was meaningfully updated. This is the same as the creation time if the entity hasn't
   #     been updated after creation.
   updatedAt
   # The time at which the entity was archived. Null if the entity has not been archived.
@@ -2290,6 +2907,12 @@ fragment IssueNotification on IssueNotification {
   reactionEmoji
   # Notification type.
   type
+  # Related comment ID. Null if the notification is not related to a comment.
+  commentId
+  # Related issue ID.
+  issueId
+  # Related parent comment ID. Null if the notification is not related to a comment.
+  parentCommentId
   # The bot that caused the notification.
   botActor {
     ...ActorBot
@@ -2306,10 +2929,13 @@ fragment IssueNotification on IssueNotification {
   issue {
     id
   }
-  # The last time at which the entity was meaningfully updated, i.e. for all changes of syncable properties except those
-  #     for which updates should not produce an update to updatedAt (see skipUpdatedAtKeys). This is the same as the creation time if the entity hasn't
+  # The last time at which the entity was meaningfully updated. This is the same as the creation time if the entity hasn't
   #     been updated after creation.
   updatedAt
+  # The parent comment related to the notification, if a notification is a reply comment notification.
+  parentComment {
+    id
+  }
   # The subscriptions related to the notification.
   subscriptions {
     ...NotificationSubscription
@@ -2348,6 +2974,8 @@ fragment Issue on Issue {
   __typename
   # A flag that indicates whether the issue is in the trash bin.
   trashed
+  # Emoji reaction summary, grouped by emoji type.
+  reactionData
   # Id of the labels associated with this issue.
   labelIds
   # Integration type that created this issue, if applicable.
@@ -2360,6 +2988,10 @@ fragment Issue on Issue {
   priorityLabel
   # Previous identifiers of the issue if it has been moved between teams.
   previousIdentifiers
+  # Reactions associated with the issue.
+  reactions {
+    ...Reaction
+  }
   # Returns the number of Attachment resources which are created by customer support ticketing systems (e.g. Zendesk).
   customerTicketCount
   # Suggested branch name for the issue.
@@ -2394,8 +3026,7 @@ fragment Issue on Issue {
   lastAppliedTemplate {
     id
   }
-  # The last time at which the entity was meaningfully updated, i.e. for all changes of syncable properties except those
-  #     for which updates should not produce an update to updatedAt (see skipUpdatedAtKeys). This is the same as the creation time if the entity hasn't
+  # The last time at which the entity was meaningfully updated. This is the same as the creation time if the entity hasn't
   #     been updated after creation.
   updatedAt
   # The order of the item in its column on the board.
@@ -2418,6 +3049,10 @@ fragment Issue on Issue {
   projectMilestone {
     id
   }
+  # The recurring issue template that created this issue.
+  recurringIssueTemplate {
+    id
+  }
   # The team that the issue is associated with.
   team {
     id
@@ -2430,6 +3065,10 @@ fragment Issue on Issue {
   startedTriageAt
   # The time at which the issue left triage.
   triagedAt
+  # The time at which the issue was added to a cycle.
+  addedToCycleAt
+  # The time at which the issue was added to a project.
+  addedToProjectAt
   # The time at which the issue was automatically archived by the auto pruning process.
   autoArchivedAt
   # The time at which the issue was automatically closed by the auto pruning process.
@@ -2444,8 +3083,14 @@ fragment Issue on Issue {
   slaStartedAt
   # The time at which the issue's SLA will breach.
   slaBreachesAt
+  # The time at which the issue's SLA will enter high risk state.
+  slaHighRiskAt
+  # The time at which the issue's SLA will enter medium risk state.
+  slaMediumRiskAt
   # The time until an issue will be snoozed in Triage view.
   snoozedUntilAt
+  # The type of SLA set on the issue. Calendar days or business days.
+  slaType
   # The unique identifier of the entity.
   id
   # The user to whom the issue is assigned to.
@@ -2475,6 +3120,8 @@ fragment OauthClientApprovalNotification on OauthClientApprovalNotification {
   __typename
   # Notification type.
   type
+  # Related OAuth client approval request ID.
+  oauthClientApprovalId
   # The OAuth client approval request related to the notification.
   oauthClientApproval {
     ...OauthClientApproval
@@ -2487,8 +3134,7 @@ fragment OauthClientApprovalNotification on OauthClientApprovalNotification {
   externalUserActor {
     id
   }
-  # The last time at which the entity was meaningfully updated, i.e. for all changes of syncable properties except those
-  #     for which updates should not produce an update to updatedAt (see skipUpdatedAtKeys). This is the same as the creation time if the entity hasn't
+  # The last time at which the entity was meaningfully updated. This is the same as the creation time if the entity hasn't
   #     been updated after creation.
   updatedAt
   # The time at when an email reminder for this notification was sent to the user. Null, if no email
@@ -2521,8 +3167,14 @@ fragment Organization on Organization {
   __typename
   # Allowed authentication providers, empty array means all are allowed.
   allowedAuthServices
+  # Configuration settings for the Customers feature.
+  customersConfiguration
   # How git branches are formatted. If null, default formatting will be used.
   gitBranchFormat
+  # IP restriction configurations.
+  ipRestrictions {
+    ...OrganizationIpRestriction
+  }
   # Number of active users in the organization.
   userCount
   # Number of issues in the organization.
@@ -2531,20 +3183,25 @@ fragment Organization on Organization {
   previousUrlKeys
   # Rolling 30-day total upload volume for the organization, in megabytes.
   periodUploadVolume
+  # The day at which to prompt for initiative updates.
+  initiativeUpdateRemindersDay
   # The day at which to prompt for project updates.
   projectUpdateRemindersDay
   # The feature release channel the organization belongs to.
   releaseChannel
-  # The frequency at which to prompt for project updates.
-  projectUpdatesReminderFrequency
+  # The hour at which to prompt for initiative updates.
+  initiativeUpdateRemindersHour
   # The hour at which to prompt for project updates.
   projectUpdateRemindersHour
-  # The last time at which the entity was meaningfully updated, i.e. for all changes of syncable properties except those
-  #     for which updates should not produce an update to updatedAt (see skipUpdatedAtKeys). This is the same as the creation time if the entity hasn't
+  # The last time at which the entity was meaningfully updated. This is the same as the creation time if the entity hasn't
   #     been updated after creation.
   updatedAt
   # The month at which the fiscal year starts. Defaults to January (0).
   fiscalYearStartMonth
+  # The n-weekly frequency at which to prompt for initiative updates. When not set, reminders are off.
+  initiativeUpdateReminderFrequencyInWeeks
+  # The n-weekly frequency at which to prompt for project updates. When not set, reminders are off.
+  projectUpdateReminderFrequencyInWeeks
   # The organization's logo URL.
   logoUrl
   # The organization's name.
@@ -2575,13 +3232,19 @@ fragment Organization on Organization {
   scimEnabled
   # Whether member users are allowed to send invites.
   allowMembersToInvite
+  # Whether team creation is restricted to admins.
+  restrictTeamCreationToAdmins
   # Whether the Git integration linkback messages should be sent to private repositories.
   gitLinkbackMessagesEnabled
   # Whether the Git integration linkback messages should be sent to public repositories.
   gitPublicLinkbackMessagesEnabled
+  # Whether the organization is using Customers.
+  customersEnabled
   # Whether the organization is using a roadmap.
   roadmapEnabled
-  # Which day count to use for SLA calculations.
+  # [DEPRECATED] The frequency at which to prompt for project updates.
+  projectUpdatesReminderFrequency
+  # [DEPRECATED] Which day count to use for SLA calculations.
   slaDayCount
 }
 
@@ -2648,6 +3311,8 @@ fragment Team on Team {
   triageResponsibility {
     id
   }
+  # The SCIM group name for the team.
+  scimGroupName
   # The canceled workflow state which auto closed issues will be set to. Defaults to the first canceled state.
   autoCloseStateId
   # The cooldown time after each cycle in weeks.
@@ -2680,8 +3345,7 @@ fragment Team on Team {
   defaultTemplateForNonMembersId
   # The issue estimation type to use. Must be one of "notUsed", "exponential", "fibonacci", "linear", "tShirt".
   issueEstimationType
-  # The last time at which the entity was meaningfully updated, i.e. for all changes of syncable properties except those
-  #     for which updates should not produce an update to updatedAt (see skipUpdatedAtKeys). This is the same as the creation time if the entity hasn't
+  # The last time at which the entity was meaningfully updated. This is the same as the creation time if the entity hasn't
   #     been updated after creation.
   updatedAt
   # The team's color.
@@ -2736,8 +3400,10 @@ fragment Team on Team {
   setIssueSortOrderOnStateChange
   # Whether an issue needs to have a priority set before leaving triage.
   requirePriorityToLeaveTriage
-  # Whether issues without priority should be sorted first.
-  issueOrderingNoPriorityFirst
+  # Whether child issues should automatically close when their parent issue is closed
+  autoCloseChildIssues
+  # Whether parent issues should automatically close when all child issues are closed
+  autoCloseParentIssues
   # Whether the team is managed by SCIM integration.
   scimManaged
   # Whether the team is private or not.
@@ -2758,8 +3424,54 @@ fragment Team on Team {
   slackIssueStatuses
   # Whether triage mode is enabled for the team or not.
   triageEnabled
+  # [DEPRECATED] Whether issues without priority should be sorted first.
+  issueOrderingNoPriorityFirst
   # [DEPRECATED] Whether to move issues to bottom of the column when changing state.
   issueSortOrderDefaultToBottom
+}
+
+# An update associated with a project.
+fragment ProjectUpdate on ProjectUpdate {
+  __typename
+  # Emoji reaction summary, grouped by emoji type.
+  reactionData
+  # Reactions associated with the project update.
+  reactions {
+    ...Reaction
+  }
+  # The URL to the project update.
+  url
+  # The diff between the current update and the previous one, formatted as markdown.
+  diffMarkdown
+  # The diff between the current update and the previous one.
+  diff
+  # The health of the project at the time of the update.
+  health
+  # The last time at which the entity was meaningfully updated. This is the same as the creation time if the entity hasn't
+  #     been updated after creation.
+  updatedAt
+  # The project that the update is associated with.
+  project {
+    id
+  }
+  # The time at which the entity was archived. Null if the entity has not been archived.
+  archivedAt
+  # The time at which the entity was created.
+  createdAt
+  # The time the update was edited.
+  editedAt
+  # The unique identifier of the entity.
+  id
+  # The update content in markdown format.
+  body
+  # The update's unique URL slug.
+  slugId
+  # The user who wrote the update.
+  user {
+    id
+  }
+  # Whether project update diff should be hidden.
+  isDiffHidden
 }
 
 # AuthOauthClient with scope from OauthToken, for use in the GraphQL API.
@@ -2854,8 +3566,7 @@ fragment ArchiveResponse on ArchiveResponse {
 # Defines the membership of a user to a team.
 fragment TeamMembership on TeamMembership {
   __typename
-  # The last time at which the entity was meaningfully updated, i.e. for all changes of syncable properties except those
-  #     for which updates should not produce an update to updatedAt (see skipUpdatedAtKeys). This is the same as the creation time if the entity hasn't
+  # The last time at which the entity was meaningfully updated. This is the same as the creation time if the entity hasn't
   #     been updated after creation.
   updatedAt
   # The order of the item in the users team list.
@@ -2889,8 +3600,7 @@ fragment OrganizationDomain on OrganizationDomain {
   verified
   # Prevent users with this domain to create new workspaces.
   disableOrganizationCreation
-  # The last time at which the entity was meaningfully updated, i.e. for all changes of syncable properties except those
-  #     for which updates should not produce an update to updatedAt (see skipUpdatedAtKeys). This is the same as the creation time if the entity hasn't
+  # The last time at which the entity was meaningfully updated. This is the same as the creation time if the entity hasn't
   #     been updated after creation.
   updatedAt
   # The time at which the entity was archived. Null if the entity has not been archived.
@@ -2907,6 +3617,27 @@ fragment OrganizationDomain on OrganizationDomain {
   authType
   # Whether the domains was claimed by the organization through DNS verification.
   claimed
+}
+
+# Entity representing a webhook execution failure.
+fragment WebhookFailureEvent on WebhookFailureEvent {
+  __typename
+  # The HTTP response body returned by the recipient or error occured.
+  responseOrError
+  # The HTTP status code returned by the recipient.
+  httpStatus
+  # The URL that the webhook was trying to push to.
+  url
+  # The time at which the entity was created.
+  createdAt
+  # The unique execution ID of the webhook push. This is retained between retries of the same push.
+  executionId
+  # The unique identifier of the entity.
+  id
+  # The webhook that this failure event is associated with.
+  webhook {
+    id
+  }
 }
 
 # Front specific settings.
@@ -2945,8 +3676,7 @@ fragment GoogleSheetsSettings on GoogleSheetsSettings {
 # Holds information about when a user has interacted with a project update.
 fragment ProjectUpdateInteraction on ProjectUpdateInteraction {
   __typename
-  # The last time at which the entity was meaningfully updated, i.e. for all changes of syncable properties except those
-  #     for which updates should not produce an update to updatedAt (see skipUpdatedAtKeys). This is the same as the creation time if the entity hasn't
+  # The last time at which the entity was meaningfully updated. This is the same as the creation time if the entity hasn't
   #     been updated after creation.
   updatedAt
   # The project update that has been interacted with.
@@ -3007,8 +3737,7 @@ fragment Attachment on Attachment {
   issue {
     id
   }
-  # The last time at which the entity was meaningfully updated, i.e. for all changes of syncable properties except those
-  #     for which updates should not produce an update to updatedAt (see skipUpdatedAtKeys). This is the same as the creation time if the entity hasn't
+  # The last time at which the entity was meaningfully updated. This is the same as the creation time if the entity hasn't
   #     been updated after creation.
   updatedAt
   # The non-Linear user who created the attachment.
@@ -3058,11 +3787,34 @@ fragment JiraSettings on JiraSettings {
   manualSetup
 }
 
+# Join table between projects and initiatives.
+fragment InitiativeToProject on InitiativeToProject {
+  __typename
+  # The initiative that the project is associated with.
+  initiative {
+    id
+  }
+  # The last time at which the entity was meaningfully updated. This is the same as the creation time if the entity hasn't
+  #     been updated after creation.
+  updatedAt
+  # The project that the initiative is associated with.
+  project {
+    id
+  }
+  # The sort order of the project within the initiative.
+  sortOrder
+  # The time at which the entity was archived. Null if the entity has not been archived.
+  archivedAt
+  # The time at which the entity was created.
+  createdAt
+  # The unique identifier of the entity.
+  id
+}
+
 # Join table between projects and roadmaps.
 fragment RoadmapToProject on RoadmapToProject {
   __typename
-  # The last time at which the entity was meaningfully updated, i.e. for all changes of syncable properties except those
-  #     for which updates should not produce an update to updatedAt (see skipUpdatedAtKeys). This is the same as the creation time if the entity hasn't
+  # The last time at which the entity was meaningfully updated. This is the same as the creation time if the entity hasn't
   #     been updated after creation.
   updatedAt
   # The project that the roadmap is associated with.
@@ -3092,8 +3844,7 @@ fragment IntegrationTemplate on IntegrationTemplate {
   integration {
     id
   }
-  # The last time at which the entity was meaningfully updated, i.e. for all changes of syncable properties except those
-  #     for which updates should not produce an update to updatedAt (see skipUpdatedAtKeys). This is the same as the creation time if the entity hasn't
+  # The last time at which the entity was meaningfully updated. This is the same as the creation time if the entity hasn't
   #     been updated after creation.
   updatedAt
   # The template that the integration is associated with.
@@ -3117,10 +3868,13 @@ fragment IssueLabel on IssueLabel {
   description
   # The label's name.
   name
-  # The last time at which the entity was meaningfully updated, i.e. for all changes of syncable properties except those
-  #     for which updates should not produce an update to updatedAt (see skipUpdatedAtKeys). This is the same as the creation time if the entity hasn't
+  # The last time at which the entity was meaningfully updated. This is the same as the creation time if the entity hasn't
   #     been updated after creation.
   updatedAt
+  # The original label inherited from.
+  inheritedFrom {
+    id
+  }
   # The parent label.
   parent {
     id
@@ -3143,13 +3897,26 @@ fragment IssueLabel on IssueLabel {
   isGroup
 }
 
-# Mapping of Linear teams to GitHub repos.
-fragment TeamRepoMapping on TeamRepoMapping {
+# LaunchDarkly specific settings.
+fragment LaunchDarklySettings on LaunchDarklySettings {
   __typename
+  # The environment of the LaunchDarkly integration.
+  environment
+  # The project key of the LaunchDarkly integration.
+  projectKey
+}
+
+# Mapping of Linear teams to GitHub repos.
+fragment GitHubRepoMapping on GitHubRepoMapping {
+  __typename
+  # Labels to filter incoming GitHub issue creation by.
+  gitHubLabels
   # The GitHub repo id.
   gitHubRepoId
   # The Linear team id to map to the given project.
   linearTeamId
+  # The unique identifier for this mapping.
+  id
   # Whether the sync for this mapping is bidirectional.
   bidirectional
   # Whether this mapping is the default one for issue creation.
@@ -3167,6 +3934,78 @@ fragment JiraProjectData on JiraProjectData {
   name
 }
 
+# Metadata about a single notification category
+fragment NotificationCategoryMetadata on NotificationCategoryMetadata {
+  __typename
+  # The category's description
+  description
+  # The category's sort order among all categories
+  sortOrder
+  # The category's title
+  title
+}
+
+# Metadata about notification categories
+fragment NotificationCategoryPreferencesMetadata on NotificationCategoryPreferencesMetadata {
+  __typename
+  # The metadata for notifications about apps and integrations.
+  appsAndIntegrations {
+    ...NotificationCategoryMetadata
+  }
+  # The metadata for notifications about assignments.
+  assignments {
+    ...NotificationCategoryMetadata
+  }
+  # The metadata for notifications about comments and replies.
+  commentsAndReplies {
+    ...NotificationCategoryMetadata
+  }
+  # The metadata for notifications about document changes.
+  documentChanges {
+    ...NotificationCategoryMetadata
+  }
+  # The metadata for notifications about mentions.
+  mentions {
+    ...NotificationCategoryMetadata
+  }
+  # The metadata for notifications about posts and updates.
+  postsAndUpdates {
+    ...NotificationCategoryMetadata
+  }
+  # The metadata for notifications about reactions.
+  reactions {
+    ...NotificationCategoryMetadata
+  }
+  # The metadata for notifications about reminders.
+  reminders {
+    ...NotificationCategoryMetadata
+  }
+  # The metadata for notifications about reviews.
+  reviews {
+    ...NotificationCategoryMetadata
+  }
+  # The metadata for notifications about status changes.
+  statusChanges {
+    ...NotificationCategoryMetadata
+  }
+  # The metadata for notifications about subscriptions.
+  subscriptions {
+    ...NotificationCategoryMetadata
+  }
+  # The preferences for customer notifications.
+  customers {
+    ...NotificationCategoryMetadata
+  }
+  # The preferences for system notifications.
+  system {
+    ...NotificationCategoryMetadata
+  }
+  # The preferences for triage notifications.
+  triage {
+    ...NotificationCategoryMetadata
+  }
+}
+
 # Metadata and settings for a GitHub Personal integration.
 fragment GitHubPersonalSettings on GitHubPersonalSettings {
   __typename
@@ -3177,6 +4016,8 @@ fragment GitHubPersonalSettings on GitHubPersonalSettings {
 # Metadata and settings for a GitHub import integration.
 fragment GitHubImportSettings on GitHubImportSettings {
   __typename
+  # A map storing all available issue labels per repository
+  labels
   # The GitHub organization's name.
   orgLogin
   # The avatar URL for the GitHub organization.
@@ -3194,7 +4035,7 @@ fragment GitHubSettings on GitHubSettings {
   __typename
   # Mapping of team to repository for syncing.
   repositoriesMapping {
-    ...TeamRepoMapping
+    ...GitHubRepoMapping
   }
   # The GitHub organization's name.
   orgLogin
@@ -3230,6 +4071,10 @@ fragment NotificationSubscription on NotificationSubscription {
   cycle {
     id
   }
+  # The contextual initiative view associated with the notification subscription.
+  initiative {
+    id
+  }
   # The contextual label view associated with the notification subscription.
   label {
     id
@@ -3238,8 +4083,7 @@ fragment NotificationSubscription on NotificationSubscription {
   project {
     id
   }
-  # The last time at which the entity was meaningfully updated, i.e. for all changes of syncable properties except those
-  #     for which updates should not produce an update to updatedAt (see skipUpdatedAtKeys). This is the same as the creation time if the entity hasn't
+  # The last time at which the entity was meaningfully updated. This is the same as the creation time if the entity hasn't
   #     been updated after creation.
   updatedAt
   # The team associated with the notification subscription.
@@ -3294,8 +4138,7 @@ fragment OauthClient on OauthClient {
   name
   # OAuth application's client secret.
   clientSecret
-  # The last time at which the entity was meaningfully updated, i.e. for all changes of syncable properties except those
-  #     for which updates should not produce an update to updatedAt (see skipUpdatedAtKeys). This is the same as the creation time if the entity hasn't
+  # The last time at which the entity was meaningfully updated. This is the same as the creation time if the entity hasn't
   #     been updated after creation.
   updatedAt
   # The resource types to request when creating new webhooks.
@@ -3333,12 +4176,18 @@ fragment SlackChannelNameMapping on SlackChannelNameMapping {
   autoCreateOnBotMention
   # Whether or not synced Slack threads should be updated with a message and emoji when their Ask is canceled.
   postCancellationUpdates
+  # Whether or not synced Slack threads should be updated with a message and emoji when their Ask is completed.
+  postCompletionUpdates
+  # Whether or not synced Slack threads should be updated with a message when their Ask is accepted from triage.
+  postAcceptedFromTriageUpdates
   # Whether or not the Linear Asks bot has been added to this Slack channel.
   botAdded
   # Whether or not the Slack channel is private.
   isPrivate
   # Whether or not the Slack channel is shared with an external org.
   isShared
+  # Whether or not to use AI to generate titles for Asks created in this channel.
+  aiTitles
   # Whether or not top-level messages in this channel should automatically create Asks.
   autoCreateOnMessage
   # Whether or not using the :ticket: emoji in this channel should automatically create Asks.
@@ -3463,8 +4312,7 @@ fragment Passkey on Passkey {
 # Request to install OAuth clients on organizations and the response to the request.
 fragment OauthClientApproval on OauthClientApproval {
   __typename
-  # The last time at which the entity was meaningfully updated, i.e. for all changes of syncable properties except those
-  #     for which updates should not produce an update to updatedAt (see skipUpdatedAtKeys). This is the same as the creation time if the entity hasn't
+  # The last time at which the entity was meaningfully updated. This is the same as the creation time if the entity hasn't
   #     been updated after creation.
   updatedAt
   # The person who requested installing the OAuth client.
@@ -3492,6 +4340,8 @@ fragment OauthClientApproval on OauthClientApproval {
 # Sentry specific settings.
 fragment SentrySettings on SentrySettings {
   __typename
+  # The ID of the Sentry organization being connected.
+  organizationId
   # The slug of the Sentry organization being connected.
   organizationSlug
 }
@@ -3558,9 +4408,13 @@ fragment SlackPostSettings on SlackPostSettings {
   configurationUrl
 }
 
-# The configuration of all integrations for a project or a team.
+# The configuration of all integrations for different entities.
 fragment IntegrationsSettings on IntegrationsSettings {
   __typename
+  # Initiative which those settings apply to.
+  initiative {
+    id
+  }
   # Project which those settings apply to.
   project {
     id
@@ -3569,18 +4423,21 @@ fragment IntegrationsSettings on IntegrationsSettings {
   team {
     id
   }
-  # The last time at which the entity was meaningfully updated, i.e. for all changes of syncable properties except those
-  #     for which updates should not produce an update to updatedAt (see skipUpdatedAtKeys). This is the same as the creation time if the entity hasn't
+  # The last time at which the entity was meaningfully updated. This is the same as the creation time if the entity hasn't
   #     been updated after creation.
   updatedAt
   # The time at which the entity was archived. Null if the entity has not been archived.
   archivedAt
   # The time at which the entity was created.
   createdAt
+  # The type of view to which the integration settings context is associated with.
+  contextViewType
   # The unique identifier of the entity.
   id
   # Whether to send a Slack message when a comment is created on any of the project or team's issues.
   slackIssueNewComment
+  # Whether to send a Slack message when a initiate update is created.
+  slackInitiativeUpdateCreated
   # Whether to send a Slack message when a new issue is added to triage.
   slackIssueAddedToTriage
   # Whether to send a Slack message when a new issue is created for the project or the team.
@@ -3591,6 +4448,8 @@ fragment IntegrationsSettings on IntegrationsSettings {
   slackIssueSlaHighRisk
   # Whether to send a Slack message when an SLA is breached.
   slackIssueSlaBreached
+  # Whether to send a Slack message when an issue is added to the custom view.
+  slackIssueAddedToView
   # Whether to send a Slack message when any of the project or team's issues change to completed or cancelled.
   slackIssueStatusChangedDone
   # Whether to send a Slack message when any of the project or team's issues has a change in status.
@@ -3631,6 +4490,9 @@ fragment IntegrationSettings on IntegrationSettings {
   jiraPersonal {
     ...JiraPersonalSettings
   }
+  launchDarkly {
+    ...LaunchDarklySettings
+  }
   notion {
     ...NotionSettings
   }
@@ -3650,6 +4512,12 @@ fragment IntegrationSettings on IntegrationSettings {
     ...SlackAsksSettings
   }
   slackCustomViewNotifications {
+    ...SlackPostSettings
+  }
+  slackInitiativePost {
+    ...SlackPostSettings
+  }
+  slackOrgInitiativeUpdatesPost {
     ...SlackPostSettings
   }
   slackOrgProjectUpdatesPost {
@@ -3679,8 +4547,7 @@ fragment PaidSubscription on PaidSubscription {
   canceledAt
   # The date the subscription will be billed next.
   nextBillingAt
-  # The last time at which the entity was meaningfully updated, i.e. for all changes of syncable properties except those
-  #     for which updates should not produce an update to updatedAt (see skipUpdatedAtKeys). This is the same as the creation time if the entity hasn't
+  # The last time at which the entity was meaningfully updated. This is the same as the creation time if the entity hasn't
   #     been updated after creation.
   updatedAt
   # The maximum number of seats that will be billed in the subscription.
@@ -3701,6 +4568,32 @@ fragment PaidSubscription on PaidSubscription {
   id
 }
 
+# The payload returned by the initiative mutations.
+fragment InitiativePayload on InitiativePayload {
+  __typename
+  # The identifier of the last sync operation.
+  lastSyncId
+  # The initiative that was created or updated.
+  initiative {
+    id
+  }
+  # Whether the operation was successful.
+  success
+}
+
+# The result of a initiativeToProject mutation.
+fragment InitiativeToProjectPayload on InitiativeToProjectPayload {
+  __typename
+  # The identifier of the last sync operation.
+  lastSyncId
+  # The initiativeToProject that was created or updated.
+  initiativeToProject {
+    id
+  }
+  # Whether the operation was successful.
+  success
+}
+
 # The settings of a user as a JSON object.
 fragment UserSettings on UserSettings {
   __typename
@@ -3708,13 +4601,10 @@ fragment UserSettings on UserSettings {
   calendarHash
   # The email types the user has unsubscribed from.
   unsubscribedFrom
-  # The last time at which the entity was meaningfully updated, i.e. for all changes of syncable properties except those
-  #     for which updates should not produce an update to updatedAt (see skipUpdatedAtKeys). This is the same as the creation time if the entity hasn't
+  # The last time at which the entity was meaningfully updated. This is the same as the creation time if the entity hasn't
   #     been updated after creation.
   updatedAt
-  # The notification channel settings the user has selected.
-  notificationPreferences
-  # The notification delivery preferences for the user.
+  # The notification delivery preferences for the user. Note: notificationDisabled field is deprecated in favor of notificationChannelPreferences.
   notificationDeliveryPreferences {
     ...NotificationDeliveryPreferences
   }
@@ -3728,6 +4618,14 @@ fragment UserSettings on UserSettings {
   user {
     id
   }
+  # The user's notification category preferences.
+  notificationCategoryPreferences {
+    ...NotificationCategoryPreferences
+  }
+  # The user's notification channel preferences.
+  notificationChannelPreferences {
+    ...NotificationChannelPreferences
+  }
   # Whether this user is subscribed to DPA emails or not.
   subscribedToDPA
   # Whether this user is subscribed to changelog email or not.
@@ -3736,8 +4634,8 @@ fragment UserSettings on UserSettings {
   subscribedToInviteAccepted
   # Whether this user is subscribed to privacy and legal update emails or not.
   subscribedToPrivacyLegalUpdates
-  # Whether this user is subscribed to unread notifications reminder emails or not.
-  subscribedToUnreadNotificationsReminder
+  # Whether to auto-assign newly created issues to the current user by default.
+  autoAssignToSelf
   # Whether to show full user names instead of display names.
   showFullUserNames
 }
@@ -3809,12 +4707,20 @@ fragment Favorite on Favorite {
   customView {
     id
   }
+  # The favorited customer.
+  customer {
+    id
+  }
   # The favorited cycle.
   cycle {
     id
   }
   # The favorited document.
   document {
+    id
+  }
+  # The favorited initiative.
+  initiative {
     id
   }
   # The favorited issue.
@@ -3833,16 +4739,11 @@ fragment Favorite on Favorite {
   roadmap {
     id
   }
-  # The favorited team of the project.
-  projectTeam {
-    id
-  }
   # The favorited user.
   user {
     id
   }
-  # The last time at which the entity was meaningfully updated, i.e. for all changes of syncable properties except those
-  #     for which updates should not produce an update to updatedAt (see skipUpdatedAtKeys). This is the same as the creation time if the entity hasn't
+  # The last time at which the entity was meaningfully updated. This is the same as the creation time if the entity hasn't
   #     been updated after creation.
   updatedAt
   # The name of the folder. Only applies to favorites of type folder.
@@ -3857,6 +4758,8 @@ fragment Favorite on Favorite {
   parent {
     id
   }
+  # The targeted tab of the initiative.
+  initiativeTab
   # The targeted tab of the project.
   projectTab
   # The team of the favorited predefined view.
@@ -3873,13 +4776,18 @@ fragment Favorite on Favorite {
   type
   # The unique identifier of the entity.
   id
+  # URL of the favorited entity. Folders return 'null' value.
+  url
+  # [DEPRECATED] The favorited team of the project.
+  projectTeam {
+    id
+  }
 }
 
 # View preferences.
 fragment ViewPreferences on ViewPreferences {
   __typename
-  # The last time at which the entity was meaningfully updated, i.e. for all changes of syncable properties except those
-  #     for which updates should not produce an update to updatedAt (see skipUpdatedAtKeys). This is the same as the creation time if the entity hasn't
+  # The last time at which the entity was meaningfully updated. This is the same as the creation time if the entity hasn't
   #     been updated after creation.
   updatedAt
   # The time at which the entity was archived. Null if the entity has not been archived.
@@ -3896,6 +4804,17 @@ fragment ViewPreferences on ViewPreferences {
   }
   # The view type.
   viewType
+}
+
+# Whether a custom JQL query is valid or not
+fragment IssueImportJqlCheckPayload on IssueImportJqlCheckPayload {
+  __typename
+  # An error message returned by Jira when validating the JQL query.
+  error
+  # Returns an approximate number of issues matching the JQL query, if available
+  count
+  # Returns true if the JQL query has been validated successfully, false otherwise
+  success
 }
 
 # Whether an issue import can be synced at the end of an import or not
@@ -3920,8 +4839,7 @@ fragment AuditEntry on AuditEntry {
   ip
   # The ID of the user that caused the audit entry to be created.
   actorId
-  # The last time at which the entity was meaningfully updated, i.e. for all changes of syncable properties except those
-  #     for which updates should not produce an update to updatedAt (see skipUpdatedAtKeys). This is the same as the creation time if the entity hasn't
+  # The last time at which the entity was meaningfully updated. This is the same as the creation time if the entity hasn't
   #     been updated after creation.
   updatedAt
   # The time at which the entity was archived. Null if the entity has not been archived.
@@ -4113,6 +5031,16 @@ fragment AuthOauthClientWithTokens on AuthOauthClientWithTokens {
   }
 }
 
+fragment AuthOrganizationBucketNamePayload on AuthOrganizationBucketNamePayload {
+  __typename
+  # The imports bucket name for the organization.
+  importsBucketName
+  # The region for the organization.
+  region
+  # The uploads bucket name for the organization.
+  uploadsBucketName
+}
+
 fragment AuthOrganizationDomain on AuthOrganizationDomain {
   __typename
   # Prevent users with this domain to create new workspaces.
@@ -4216,16 +5144,6 @@ fragment CommentPayload on CommentPayload {
   success
 }
 
-fragment CompanyConnection on CompanyConnection {
-  __typename
-  nodes {
-    ...Company
-  }
-  pageInfo {
-    ...PageInfo
-  }
-}
-
 fragment ContactPayload on ContactPayload {
   __typename
   # Whether the operation was successful.
@@ -4286,6 +5204,94 @@ fragment CustomViewSuggestionPayload on CustomViewSuggestionPayload {
   name
 }
 
+fragment CustomerConnection on CustomerConnection {
+  __typename
+  nodes {
+    ...Customer
+  }
+  pageInfo {
+    ...PageInfo
+  }
+}
+
+fragment CustomerNeedConnection on CustomerNeedConnection {
+  __typename
+  nodes {
+    ...CustomerNeed
+  }
+  pageInfo {
+    ...PageInfo
+  }
+}
+
+fragment CustomerNeedPayload on CustomerNeedPayload {
+  __typename
+  # The customer need that was created or updated.
+  need {
+    id
+  }
+  # The identifier of the last sync operation.
+  lastSyncId
+  # Whether the operation was successful.
+  success
+}
+
+fragment CustomerPayload on CustomerPayload {
+  __typename
+  # The customer that was created or updated.
+  customer {
+    id
+  }
+  # The identifier of the last sync operation.
+  lastSyncId
+  # Whether the operation was successful.
+  success
+}
+
+fragment CustomerStatusConnection on CustomerStatusConnection {
+  __typename
+  nodes {
+    ...CustomerStatus
+  }
+  pageInfo {
+    ...PageInfo
+  }
+}
+
+fragment CustomerStatusPayload on CustomerStatusPayload {
+  __typename
+  # The customer status that was created or updated.
+  status {
+    id
+  }
+  # The identifier of the last sync operation.
+  lastSyncId
+  # Whether the operation was successful.
+  success
+}
+
+fragment CustomerTierConnection on CustomerTierConnection {
+  __typename
+  nodes {
+    ...CustomerTier
+  }
+  pageInfo {
+    ...PageInfo
+  }
+}
+
+fragment CustomerTierPayload on CustomerTierPayload {
+  __typename
+  # The customer tier that was created or updated.
+  tier {
+    id
+  }
+  # The identifier of the last sync operation.
+  lastSyncId
+  # Whether the operation was successful.
+  success
+}
+
 fragment CycleConnection on CycleConnection {
   __typename
   nodes {
@@ -4316,18 +5322,6 @@ fragment DiaryEntryConnection on DiaryEntryConnection {
   pageInfo {
     ...PageInfo
   }
-}
-
-fragment DiaryEntryPayload on DiaryEntryPayload {
-  __typename
-  # The diary entry that was created or updated.
-  diaryEntry {
-    id
-  }
-  # The identifier of the last sync operation.
-  lastSyncId
-  # Whether the operation was successful.
-  success
 }
 
 fragment DocumentConnection on DocumentConnection {
@@ -4392,8 +5386,12 @@ fragment DocumentSearchPayload on DocumentSearchPayload {
 
 fragment DocumentSearchResult on DocumentSearchResult {
   __typename
+  # A flag that indicates whether the document is in the trash bin.
+  trashed
   # Metadata related to search result.
   metadata
+  # The ID of the document content associated with the document.
+  documentContentId
   # The canonical url for the document.
   url
   # The color of the icon.
@@ -4410,8 +5408,7 @@ fragment DocumentSearchResult on DocumentSearchResult {
   lastAppliedTemplate {
     id
   }
-  # The last time at which the entity was meaningfully updated, i.e. for all changes of syncable properties except those
-  #     for which updates should not produce an update to updatedAt (see skipUpdatedAtKeys). This is the same as the creation time if the entity hasn't
+  # The last time at which the entity was meaningfully updated. This is the same as the creation time if the entity hasn't
   #     been updated after creation.
   updatedAt
   # The order of the item in the resources list.
@@ -4442,6 +5439,16 @@ fragment DocumentSearchResultConnection on DocumentSearchResultConnection {
   __typename
   nodes {
     ...DocumentSearchResult
+  }
+  pageInfo {
+    ...PageInfo
+  }
+}
+
+fragment DraftConnection on DraftConnection {
+  __typename
+  nodes {
+    ...Draft
   }
   pageInfo {
     ...PageInfo
@@ -4560,6 +5567,26 @@ fragment FavoritePayload on FavoritePayload {
   success
 }
 
+fragment FeatureFlagConnection on FeatureFlagConnection {
+  __typename
+  nodes {
+    ...FeatureFlag
+  }
+  pageInfo {
+    ...PageInfo
+  }
+}
+
+fragment FeatureFlagRolloutStageConnection on FeatureFlagRolloutStageConnection {
+  __typename
+  nodes {
+    ...FeatureFlagRolloutStage
+  }
+  pageInfo {
+    ...PageInfo
+  }
+}
+
 fragment FrontAttachmentPayload on FrontAttachmentPayload {
   __typename
   # The identifier of the last sync operation.
@@ -4616,6 +5643,44 @@ fragment GitHubCommitIntegrationPayload on GitHubCommitIntegrationPayload {
   success
 }
 
+fragment GitHubEnterpriseServerInstallVerificationPayload on GitHubEnterpriseServerInstallVerificationPayload {
+  __typename
+  # Has the install been successful.
+  success
+}
+
+fragment GitHubEnterpriseServerPayload on GitHubEnterpriseServerPayload {
+  __typename
+  # The app install address.
+  installUrl
+  # The identifier of the last sync operation.
+  lastSyncId
+  # The integration that was created or updated.
+  integration {
+    id
+  }
+  # The setup address.
+  setupUrl
+  # The webhook secret to provide to GitHub.
+  webhookSecret
+  # Whether the operation was successful.
+  success
+}
+
+fragment GitLabIntegrationCreatePayload on GitLabIntegrationCreatePayload {
+  __typename
+  # The identifier of the last sync operation.
+  lastSyncId
+  # The integration that was created or updated.
+  integration {
+    id
+  }
+  # The webhook secret to provide to GitLab.
+  webhookSecret
+  # Whether the operation was successful.
+  success
+}
+
 fragment ImageUploadFromUrlPayload on ImageUploadFromUrlPayload {
   __typename
   # The URL containing the image.
@@ -4624,6 +5689,26 @@ fragment ImageUploadFromUrlPayload on ImageUploadFromUrlPayload {
   lastSyncId
   # Whether the operation was successful.
   success
+}
+
+fragment InitiativeConnection on InitiativeConnection {
+  __typename
+  nodes {
+    ...Initiative
+  }
+  pageInfo {
+    ...PageInfo
+  }
+}
+
+fragment InitiativeToProjectConnection on InitiativeToProjectConnection {
+  __typename
+  nodes {
+    ...InitiativeToProject
+  }
+  pageInfo {
+    ...PageInfo
+  }
 }
 
 fragment IntegrationConnection on IntegrationConnection {
@@ -4858,6 +5943,8 @@ fragment IssueSearchResult on IssueSearchResult {
   __typename
   # A flag that indicates whether the issue is in the trash bin.
   trashed
+  # Emoji reaction summary, grouped by emoji type.
+  reactionData
   # Id of the labels associated with this issue.
   labelIds
   # Integration type that created this issue, if applicable.
@@ -4872,6 +5959,10 @@ fragment IssueSearchResult on IssueSearchResult {
   metadata
   # Previous identifiers of the issue if it has been moved between teams.
   previousIdentifiers
+  # Reactions associated with the issue.
+  reactions {
+    ...Reaction
+  }
   # Returns the number of Attachment resources which are created by customer support ticketing systems (e.g. Zendesk).
   customerTicketCount
   # Suggested branch name for the issue.
@@ -4906,8 +5997,7 @@ fragment IssueSearchResult on IssueSearchResult {
   lastAppliedTemplate {
     id
   }
-  # The last time at which the entity was meaningfully updated, i.e. for all changes of syncable properties except those
-  #     for which updates should not produce an update to updatedAt (see skipUpdatedAtKeys). This is the same as the creation time if the entity hasn't
+  # The last time at which the entity was meaningfully updated. This is the same as the creation time if the entity hasn't
   #     been updated after creation.
   updatedAt
   # The order of the item in its column on the board.
@@ -4930,6 +6020,10 @@ fragment IssueSearchResult on IssueSearchResult {
   projectMilestone {
     id
   }
+  # The recurring issue template that created this issue.
+  recurringIssueTemplate {
+    id
+  }
   # The team that the issue is associated with.
   team {
     id
@@ -4942,6 +6036,10 @@ fragment IssueSearchResult on IssueSearchResult {
   startedTriageAt
   # The time at which the issue left triage.
   triagedAt
+  # The time at which the issue was added to a cycle.
+  addedToCycleAt
+  # The time at which the issue was added to a project.
+  addedToProjectAt
   # The time at which the issue was automatically archived by the auto pruning process.
   autoArchivedAt
   # The time at which the issue was automatically closed by the auto pruning process.
@@ -4956,8 +6054,14 @@ fragment IssueSearchResult on IssueSearchResult {
   slaStartedAt
   # The time at which the issue's SLA will breach.
   slaBreachesAt
+  # The time at which the issue's SLA will enter high risk state.
+  slaHighRiskAt
+  # The time at which the issue's SLA will enter medium risk state.
+  slaMediumRiskAt
   # The time until an issue will be snoozed in Triage view.
   snoozedUntilAt
+  # The type of SLA set on the issue. Calendar days or business days.
+  slaType
   # The unique identifier of the entity.
   id
   # The user to whom the issue is assigned to.
@@ -4990,6 +6094,14 @@ fragment IssueSearchResultConnection on IssueSearchResultConnection {
   pageInfo {
     ...PageInfo
   }
+}
+
+fragment IssueTitleSuggestionFromCustomerRequestPayload on IssueTitleSuggestionFromCustomerRequestPayload {
+  __typename
+  # The identifier of the last sync operation.
+  lastSyncId
+  # The suggested issue title.
+  title
 }
 
 fragment LogoutResponse on LogoutResponse {
@@ -5180,6 +6292,18 @@ fragment OrganizationInvitePayload on OrganizationInvitePayload {
   success
 }
 
+fragment OrganizationIpRestriction on OrganizationIpRestriction {
+  __typename
+  # IP range in CIDR format.
+  range
+  # Optional restriction description.
+  description
+  # Restriction type.
+  type
+  # Whether the restriction is enabled.
+  enabled
+}
+
 fragment OrganizationMeta on OrganizationMeta {
   __typename
   # Allowed authentication providers, empty array means all are allowed.
@@ -5238,18 +6362,20 @@ fragment ProjectConnection on ProjectConnection {
   }
 }
 
-fragment ProjectDetailSuggestionPayload on ProjectDetailSuggestionPayload {
-  __typename
-  # The suggested project color.
-  color
-  # The suggested view icon.
-  icon
-}
-
 fragment ProjectFilterSuggestionPayload on ProjectFilterSuggestionPayload {
   __typename
   # The json filter that is suggested.
   filter
+}
+
+fragment ProjectHistoryConnection on ProjectHistoryConnection {
+  __typename
+  nodes {
+    ...ProjectHistory
+  }
+  pageInfo {
+    ...PageInfo
+  }
 }
 
 fragment ProjectLinkConnection on ProjectLinkConnection {
@@ -5262,18 +6388,6 @@ fragment ProjectLinkConnection on ProjectLinkConnection {
   }
 }
 
-fragment ProjectLinkPayload on ProjectLinkPayload {
-  __typename
-  # The identifier of the last sync operation.
-  lastSyncId
-  # The project that was created or updated.
-  projectLink {
-    id
-  }
-  # Whether the operation was successful.
-  success
-}
-
 fragment ProjectMilestoneConnection on ProjectMilestoneConnection {
   __typename
   nodes {
@@ -5282,6 +6396,42 @@ fragment ProjectMilestoneConnection on ProjectMilestoneConnection {
   pageInfo {
     ...PageInfo
   }
+}
+
+fragment ProjectMilestoneMoveIssueToTeam on ProjectMilestoneMoveIssueToTeam {
+  __typename
+  # The issue id in this relationship, you can use * as wildcard if all issues are being moved to the same team
+  issueId
+  # The team id in this relationship
+  teamId
+}
+
+fragment ProjectMilestoneMovePayload on ProjectMilestoneMovePayload {
+  __typename
+  # A snapshot of the issues that were moved to new teams, if the user selected to do it, containing an array of mappings between an issue and its previous team. Store on the client to use for undoing a previous milestone move.
+  previousIssueTeamIds {
+    ...ProjectMilestoneMoveIssueToTeam
+  }
+  # A snapshot of the project that had new teams added to it, if the user selected to do it, containing an array of mappings between a project and its previous teams. Store on the client to use for undoing a previous milestone move.
+  previousProjectTeamIds {
+    ...ProjectMilestoneMoveProjectTeams
+  }
+  # The identifier of the last sync operation.
+  lastSyncId
+  # The project milestone that was created or updated.
+  projectMilestone {
+    id
+  }
+  # Whether the operation was successful.
+  success
+}
+
+fragment ProjectMilestoneMoveProjectTeams on ProjectMilestoneMoveProjectTeams {
+  __typename
+  # The project id
+  projectId
+  # The team ids for the project
+  teamIds
 }
 
 fragment ProjectMilestonePayload on ProjectMilestonePayload {
@@ -5358,18 +6508,23 @@ fragment ProjectSearchResult on ProjectSearchResult {
   integrationsSettings {
     id
   }
+  # The content of the project description.
+  documentContent {
+    ...DocumentContent
+  }
   # The estimated completion date of the project.
   targetDate
   # The estimated start date of the project.
   startDate
+  # The health of the project.
+  health
   # The icon of the project.
   icon
   # The last template that was applied to this project.
   lastAppliedTemplate {
     id
   }
-  # The last time at which the entity was meaningfully updated, i.e. for all changes of syncable properties except those
-  #     for which updates should not produce an update to updatedAt (see skipUpdatedAtKeys). This is the same as the creation time if the entity hasn't
+  # The last time at which the entity was meaningfully updated. This is the same as the creation time if the entity hasn't
   #     been updated after creation.
   updatedAt
   # The number of completed estimation points after each week.
@@ -5382,6 +6537,8 @@ fragment ProjectSearchResult on ProjectSearchResult {
   progress
   # The overall scope (total estimate points) of the project.
   scope
+  # The priority of the project. 0 = No priority, 1 = Urgent, 2 = High, 3 = Normal, 4 = Low.
+  priority
   # The project lead.
   lead {
     id
@@ -5404,12 +6561,14 @@ fragment ProjectSearchResult on ProjectSearchResult {
   sortOrder
   # The status that the project is associated with.
   status {
-    ...ProjectStatus
+    id
   }
   # The time at which the entity was archived. Null if the entity has not been archived.
   archivedAt
   # The time at which the entity was created.
   createdAt
+  # The time at which the project health was updated.
+  healthUpdatedAt
   # The time at which the project was automatically archived by the auto pruning process.
   autoArchivedAt
   # The time at which the project was moved into canceled state.
@@ -5462,6 +6621,28 @@ fragment ProjectStatusConnection on ProjectStatusConnection {
   pageInfo {
     ...PageInfo
   }
+}
+
+fragment ProjectStatusCountPayload on ProjectStatusCountPayload {
+  __typename
+  # Total number of projects using this project status that are not visible to the user because they are in a private team.
+  privateCount
+  # Total number of projects using this project status that are not visible to the user because they are in an archived team.
+  archivedTeamCount
+  # Total number of projects using this project status.
+  count
+}
+
+fragment ProjectStatusPayload on ProjectStatusPayload {
+  __typename
+  # The identifier of the last sync operation.
+  lastSyncId
+  # The project status that was created or updated.
+  status {
+    id
+  }
+  # Whether the operation was successful.
+  success
 }
 
 fragment ProjectUpdateConnection on ProjectUpdateConnection {
@@ -5932,6 +7113,16 @@ fragment WebhookConnection on WebhookConnection {
   }
 }
 
+fragment WebhookFailureEventConnection on WebhookFailureEventConnection {
+  __typename
+  nodes {
+    ...WebhookFailureEvent
+  }
+  pageInfo {
+    ...PageInfo
+  }
+}
+
 fragment WebhookPayload on WebhookPayload {
   __typename
   # The identifier of the last sync operation.
@@ -5952,8 +7143,7 @@ fragment WorkflowCronJobDefinition on WorkflowCronJobDefinition {
   schedule
   # The description of the workflow cron job.
   description
-  # The last time at which the entity was meaningfully updated, i.e. for all changes of syncable properties except those
-  #     for which updates should not produce an update to updatedAt (see skipUpdatedAtKeys). This is the same as the creation time if the entity hasn't
+  # The last time at which the entity was meaningfully updated. This is the same as the creation time if the entity hasn't
   #     been updated after creation.
   updatedAt
   # The name of the workflow cron job.
@@ -6001,6 +7191,10 @@ fragment WorkflowDefinition on WorkflowDefinition {
   cycle {
     id
   }
+  # The contextual initiative view associated with the workflow.
+  initiative {
+    id
+  }
   # The contextual label view associated with the workflow.
   label {
     id
@@ -6015,8 +7209,7 @@ fragment WorkflowDefinition on WorkflowDefinition {
   }
   # The description of the workflow.
   description
-  # The last time at which the entity was meaningfully updated, i.e. for all changes of syncable properties except those
-  #     for which updates should not produce an update to updatedAt (see skipUpdatedAtKeys). This is the same as the creation time if the entity hasn't
+  # The last time at which the entity was meaningfully updated. This is the same as the creation time if the entity hasn't
   #     been updated after creation.
   updatedAt
   # The name of the group that the workflow belongs to.
@@ -6383,6 +7576,39 @@ query attachmentIssue_labels(
     }
   }
 }
+# Customer needs associated with the issue.
+query attachmentIssue_needs(
+  # `id` of the attachment for which you'll want to get the issue for. [Deprecated] `url` as the `id` parameter.
+  $id: String!
+  # A cursor to be used with first for forward pagination
+  $after: String
+  # A cursor to be used with last for backward pagination.
+  $before: String
+  # Filter returned needs.
+  $filter: CustomerNeedFilter
+  # The number of items to forward paginate (used with after). Defaults to 50.
+  $first: Int
+  # Should archived resources be included (default: false)
+  $includeArchived: Boolean
+  # The number of items to backward paginate (used with before). Defaults to 50.
+  $last: Int
+  # By which field should the pagination order by. Available options are createdAt (default) and updatedAt.
+  $orderBy: PaginationOrderBy
+) {
+  attachmentIssue(id: $id) {
+    needs(
+      after: $after
+      before: $before
+      filter: $filter
+      first: $first
+      includeArchived: $includeArchived
+      last: $last
+      orderBy: $orderBy
+    ) {
+      ...CustomerNeedConnection
+    }
+  }
+}
 # Relations associated with this issue.
 query attachmentIssue_relations(
   # `id` of the attachment for which you'll want to get the issue for. [Deprecated] `url` as the `id` parameter.
@@ -6636,6 +7862,21 @@ query comment_documentContent(
     }
   }
 }
+# The external thread that the comment is synced with.
+query comment_externalThread(
+  # The hash of the comment to retrieve.
+  $hash: String
+  # The identifier of the comment to retrieve.
+  $id: String
+  # [Deprecated] The issue for which to find the comment.
+  $issueId: String
+) {
+  comment(hash: $hash, id: $id, issueId: $issueId) {
+    externalThread {
+      ...SyncedExternalThread
+    }
+  }
+}
 # All comments.
 query comments(
   # A cursor to be used with first for forward pagination
@@ -6817,6 +8058,143 @@ query customViews(
     ...CustomViewConnection
   }
 }
+# One specific customer.
+query customer($id: String!) {
+  customer(id: $id) {
+    ...Customer
+  }
+}
+# One specific customer need
+query customerNeed($id: String!) {
+  customerNeed(id: $id) {
+    ...CustomerNeed
+  }
+}
+# All customer needs.
+query customerNeeds(
+  # A cursor to be used with first for forward pagination
+  $after: String
+  # A cursor to be used with last for backward pagination.
+  $before: String
+  # Filter returned customers needs.
+  $filter: CustomerNeedFilter
+  # The number of items to forward paginate (used with after). Defaults to 50.
+  $first: Int
+  # Should archived resources be included (default: false)
+  $includeArchived: Boolean
+  # The number of items to backward paginate (used with before). Defaults to 50.
+  $last: Int
+  # By which field should the pagination order by. Available options are createdAt (default) and updatedAt.
+  $orderBy: PaginationOrderBy
+) {
+  customerNeeds(
+    after: $after
+    before: $before
+    filter: $filter
+    first: $first
+    includeArchived: $includeArchived
+    last: $last
+    orderBy: $orderBy
+  ) {
+    ...CustomerNeedConnection
+  }
+}
+# One specific customer status.
+query customerStatus($id: String!) {
+  customerStatus(id: $id) {
+    ...CustomerStatus
+  }
+}
+# All customer statuses.
+query customerStatuses(
+  # A cursor to be used with first for forward pagination
+  $after: String
+  # A cursor to be used with last for backward pagination.
+  $before: String
+  # The number of items to forward paginate (used with after). Defaults to 50.
+  $first: Int
+  # Should archived resources be included (default: false)
+  $includeArchived: Boolean
+  # The number of items to backward paginate (used with before). Defaults to 50.
+  $last: Int
+  # By which field should the pagination order by. Available options are createdAt (default) and updatedAt.
+  $orderBy: PaginationOrderBy
+) {
+  customerStatuses(
+    after: $after
+    before: $before
+    first: $first
+    includeArchived: $includeArchived
+    last: $last
+    orderBy: $orderBy
+  ) {
+    ...CustomerStatusConnection
+  }
+}
+# One specific customer tier.
+query customerTier($id: String!) {
+  customerTier(id: $id) {
+    ...CustomerTier
+  }
+}
+# All customer tiers.
+query customerTiers(
+  # A cursor to be used with first for forward pagination
+  $after: String
+  # A cursor to be used with last for backward pagination.
+  $before: String
+  # The number of items to forward paginate (used with after). Defaults to 50.
+  $first: Int
+  # Should archived resources be included (default: false)
+  $includeArchived: Boolean
+  # The number of items to backward paginate (used with before). Defaults to 50.
+  $last: Int
+  # By which field should the pagination order by. Available options are createdAt (default) and updatedAt.
+  $orderBy: PaginationOrderBy
+) {
+  customerTiers(
+    after: $after
+    before: $before
+    first: $first
+    includeArchived: $includeArchived
+    last: $last
+    orderBy: $orderBy
+  ) {
+    ...CustomerTierConnection
+  }
+}
+# All customers.
+query customers(
+  # A cursor to be used with first for forward pagination
+  $after: String
+  # A cursor to be used with last for backward pagination.
+  $before: String
+  # Filter returned customers.
+  $filter: CustomerFilter
+  # The number of items to forward paginate (used with after). Defaults to 50.
+  $first: Int
+  # Should archived resources be included (default: false)
+  $includeArchived: Boolean
+  # The number of items to backward paginate (used with before). Defaults to 50.
+  $last: Int
+  # By which field should the pagination order by. Available options are createdAt (default) and updatedAt.
+  $orderBy: PaginationOrderBy
+  # Sort returned customers.
+  $sorts: [CustomerSortInput!]
+) {
+  customers(
+    after: $after
+    before: $before
+    filter: $filter
+    first: $first
+    includeArchived: $includeArchived
+    last: $last
+    orderBy: $orderBy
+    sorts: $sorts
+  ) {
+    ...CustomerConnection
+  }
+}
 # One specific cycle.
 query cycle($id: String!) {
   cycle(id: $id) {
@@ -6916,16 +8294,42 @@ query cycles(
     ...CycleConnection
   }
 }
-# One specific diary entry.
-query diaryEntry($id: String!) {
-  diaryEntry(id: $id) {
-    ...DiaryEntry
-  }
-}
 # One specific document.
 query document($id: String!) {
   document(id: $id) {
     ...Document
+  }
+}
+# Comments associated with the document.
+query document_comments(
+  $id: String!
+  # A cursor to be used with first for forward pagination
+  $after: String
+  # A cursor to be used with last for backward pagination.
+  $before: String
+  # Filter returned comments.
+  $filter: CommentFilter
+  # The number of items to forward paginate (used with after). Defaults to 50.
+  $first: Int
+  # Should archived resources be included (default: false)
+  $includeArchived: Boolean
+  # The number of items to backward paginate (used with before). Defaults to 50.
+  $last: Int
+  # By which field should the pagination order by. Available options are createdAt (default) and updatedAt.
+  $orderBy: PaginationOrderBy
+) {
+  document(id: $id) {
+    comments(
+      after: $after
+      before: $before
+      filter: $filter
+      first: $first
+      includeArchived: $includeArchived
+      last: $last
+      orderBy: $orderBy
+    ) {
+      ...CommentConnection
+    }
   }
 }
 # A collection of document content history entries.
@@ -7098,6 +8502,131 @@ query favorites(
     orderBy: $orderBy
   ) {
     ...FavoriteConnection
+  }
+}
+# One specific initiative.
+query initiative($id: String!) {
+  initiative(id: $id) {
+    ...Initiative
+  }
+}
+# Links associated with the initiative.
+query initiative_links(
+  $id: String!
+  # A cursor to be used with first for forward pagination
+  $after: String
+  # A cursor to be used with last for backward pagination.
+  $before: String
+  # The number of items to forward paginate (used with after). Defaults to 50.
+  $first: Int
+  # Should archived resources be included (default: false)
+  $includeArchived: Boolean
+  # The number of items to backward paginate (used with before). Defaults to 50.
+  $last: Int
+  # By which field should the pagination order by. Available options are createdAt (default) and updatedAt.
+  $orderBy: PaginationOrderBy
+) {
+  initiative(id: $id) {
+    links(
+      after: $after
+      before: $before
+      first: $first
+      includeArchived: $includeArchived
+      last: $last
+      orderBy: $orderBy
+    ) {
+      ...EntityExternalLinkConnection
+    }
+  }
+}
+# Projects associated with the initiative.
+query initiative_projects(
+  $id: String!
+  # A cursor to be used with first for forward pagination
+  $after: String
+  # A cursor to be used with last for backward pagination.
+  $before: String
+  # Filter returned projects.
+  $filter: ProjectFilter
+  # The number of items to forward paginate (used with after). Defaults to 50.
+  $first: Int
+  # Should archived resources be included (default: false)
+  $includeArchived: Boolean
+  # The number of items to backward paginate (used with before). Defaults to 50.
+  $last: Int
+  # By which field should the pagination order by. Available options are createdAt (default) and updatedAt.
+  $orderBy: PaginationOrderBy
+) {
+  initiative(id: $id) {
+    projects(
+      after: $after
+      before: $before
+      filter: $filter
+      first: $first
+      includeArchived: $includeArchived
+      last: $last
+      orderBy: $orderBy
+    ) {
+      ...ProjectConnection
+    }
+  }
+}
+# One specific initiativeToProject.
+query initiativeToProject($id: String!) {
+  initiativeToProject(id: $id) {
+    ...InitiativeToProject
+  }
+}
+# returns a list of initiative to project entities.
+query initiativeToProjects(
+  # A cursor to be used with first for forward pagination
+  $after: String
+  # A cursor to be used with last for backward pagination.
+  $before: String
+  # The number of items to forward paginate (used with after). Defaults to 50.
+  $first: Int
+  # Should archived resources be included (default: false)
+  $includeArchived: Boolean
+  # The number of items to backward paginate (used with before). Defaults to 50.
+  $last: Int
+  # By which field should the pagination order by. Available options are createdAt (default) and updatedAt.
+  $orderBy: PaginationOrderBy
+) {
+  initiativeToProjects(
+    after: $after
+    before: $before
+    first: $first
+    includeArchived: $includeArchived
+    last: $last
+    orderBy: $orderBy
+  ) {
+    ...InitiativeToProjectConnection
+  }
+}
+# All initiatives in the workspace.
+query initiatives(
+  # A cursor to be used with first for forward pagination
+  $after: String
+  # A cursor to be used with last for backward pagination.
+  $before: String
+  # The number of items to forward paginate (used with after). Defaults to 50.
+  $first: Int
+  # Should archived resources be included (default: false)
+  $includeArchived: Boolean
+  # The number of items to backward paginate (used with before). Defaults to 50.
+  $last: Int
+  # By which field should the pagination order by. Available options are createdAt (default) and updatedAt.
+  $orderBy: PaginationOrderBy
+) {
+  initiatives(
+    after: $after
+    before: $before
+    first: $first
+    includeArchived: $includeArchived
+    last: $last
+    orderBy: $orderBy
+  ) {
+    ...InitiativeConnection
   }
 }
 # One specific integration.
@@ -7381,6 +8910,38 @@ query issue_labels(
     }
   }
 }
+# Customer needs associated with the issue.
+query issue_needs(
+  $id: String!
+  # A cursor to be used with first for forward pagination
+  $after: String
+  # A cursor to be used with last for backward pagination.
+  $before: String
+  # Filter returned needs.
+  $filter: CustomerNeedFilter
+  # The number of items to forward paginate (used with after). Defaults to 50.
+  $first: Int
+  # Should archived resources be included (default: false)
+  $includeArchived: Boolean
+  # The number of items to backward paginate (used with before). Defaults to 50.
+  $last: Int
+  # By which field should the pagination order by. Available options are createdAt (default) and updatedAt.
+  $orderBy: PaginationOrderBy
+) {
+  issue(id: $id) {
+    needs(
+      after: $after
+      before: $before
+      filter: $filter
+      first: $first
+      includeArchived: $includeArchived
+      last: $last
+      orderBy: $orderBy
+    ) {
+      ...CustomerNeedConnection
+    }
+  }
+}
 # Relations associated with this issue.
 query issue_relations(
   $id: String!
@@ -7502,6 +9063,29 @@ query issueImportCheckSync(
 ) {
   issueImportCheckSync(issueImportId: $issueImportId) {
     ...IssueImportSyncCheckPayload
+  }
+}
+# Checks whether a custom JQL query is valid and can be used to filter issues of a Jira import
+query issueImportJqlCheck(
+  # Jira user account email.
+  $jiraEmail: String!
+  # Jira installation or cloud hostname.
+  $jiraHostname: String!
+  # Jira project key to use as the base filter of the query.
+  $jiraProject: String!
+  # Jira personal access token to access Jira REST API.
+  $jiraToken: String!
+  # The JQL query to validate.
+  $jql: String!
+) {
+  issueImportJqlCheck(
+    jiraEmail: $jiraEmail
+    jiraHostname: $jiraHostname
+    jiraProject: $jiraProject
+    jiraToken: $jiraToken
+    jql: $jql
+  ) {
+    ...IssueImportJqlCheckPayload
   }
 }
 # One specific label.
@@ -7672,6 +9256,12 @@ query issueSearch(
     query: $query
   ) {
     ...IssueConnection
+  }
+}
+# Suggests issue title based on a customer request.
+query issueTitleSuggestionFromCustomerRequest($request: String!) {
+  issueTitleSuggestionFromCustomerRequest(request: $request) {
+    ...IssueTitleSuggestionFromCustomerRequestPayload
   }
 }
 # Find issue based on the VCS branch name.
@@ -7886,6 +9476,39 @@ query issueVcsBranchSearch_labels(
     }
   }
 }
+# Customer needs associated with the issue.
+query issueVcsBranchSearch_needs(
+  # The VCS branch name to search for.
+  $branchName: String!
+  # A cursor to be used with first for forward pagination
+  $after: String
+  # A cursor to be used with last for backward pagination.
+  $before: String
+  # Filter returned needs.
+  $filter: CustomerNeedFilter
+  # The number of items to forward paginate (used with after). Defaults to 50.
+  $first: Int
+  # Should archived resources be included (default: false)
+  $includeArchived: Boolean
+  # The number of items to backward paginate (used with before). Defaults to 50.
+  $last: Int
+  # By which field should the pagination order by. Available options are createdAt (default) and updatedAt.
+  $orderBy: PaginationOrderBy
+) {
+  issueVcsBranchSearch(branchName: $branchName) {
+    needs(
+      after: $after
+      before: $before
+      filter: $filter
+      first: $first
+      includeArchived: $includeArchived
+      last: $last
+      orderBy: $orderBy
+    ) {
+      ...CustomerNeedConnection
+    }
+  }
+}
 # Relations associated with this issue.
 query issueVcsBranchSearch_relations(
   # The VCS branch name to search for.
@@ -8028,6 +9651,8 @@ query notifications(
   $after: String
   # A cursor to be used with last for backward pagination.
   $before: String
+  # Filters returned notifications.
+  $filter: NotificationFilter
   # The number of items to forward paginate (used with after). Defaults to 50.
   $first: Int
   # Should archived resources be included (default: false)
@@ -8040,6 +9665,7 @@ query notifications(
   notifications(
     after: $after
     before: $before
+    filter: $filter
     first: $first
     includeArchived: $includeArchived
     last: $last
@@ -8158,6 +9784,8 @@ query organization_templates(
   $after: String
   # A cursor to be used with last for backward pagination.
   $before: String
+  # Filter returned templates.
+  $filter: NullableTemplateFilter
   # The number of items to forward paginate (used with after). Defaults to 50.
   $first: Int
   # Should archived resources be included (default: false)
@@ -8171,6 +9799,7 @@ query organization_templates(
     templates(
       after: $after
       before: $before
+      filter: $filter
       first: $first
       includeArchived: $includeArchived
       last: $last
@@ -8255,6 +9884,46 @@ query project($id: String!) {
     ...Project
   }
 }
+# Comments associated with the project overview.
+query project_comments(
+  $id: String!
+  # A cursor to be used with first for forward pagination
+  $after: String
+  # A cursor to be used with last for backward pagination.
+  $before: String
+  # Filter returned comments.
+  $filter: CommentFilter
+  # The number of items to forward paginate (used with after). Defaults to 50.
+  $first: Int
+  # Should archived resources be included (default: false)
+  $includeArchived: Boolean
+  # The number of items to backward paginate (used with before). Defaults to 50.
+  $last: Int
+  # By which field should the pagination order by. Available options are createdAt (default) and updatedAt.
+  $orderBy: PaginationOrderBy
+) {
+  project(id: $id) {
+    comments(
+      after: $after
+      before: $before
+      filter: $filter
+      first: $first
+      includeArchived: $includeArchived
+      last: $last
+      orderBy: $orderBy
+    ) {
+      ...CommentConnection
+    }
+  }
+}
+# The content of the project description.
+query project_documentContent($id: String!) {
+  project(id: $id) {
+    documentContent {
+      ...DocumentContent
+    }
+  }
+}
 # Documents associated with the project.
 query project_documents(
   $id: String!
@@ -8287,6 +9956,93 @@ query project_documents(
     }
   }
 }
+# External links associated with the project.
+query project_externalLinks(
+  $id: String!
+  # A cursor to be used with first for forward pagination
+  $after: String
+  # A cursor to be used with last for backward pagination.
+  $before: String
+  # The number of items to forward paginate (used with after). Defaults to 50.
+  $first: Int
+  # Should archived resources be included (default: false)
+  $includeArchived: Boolean
+  # The number of items to backward paginate (used with before). Defaults to 50.
+  $last: Int
+  # By which field should the pagination order by. Available options are createdAt (default) and updatedAt.
+  $orderBy: PaginationOrderBy
+) {
+  project(id: $id) {
+    externalLinks(
+      after: $after
+      before: $before
+      first: $first
+      includeArchived: $includeArchived
+      last: $last
+      orderBy: $orderBy
+    ) {
+      ...EntityExternalLinkConnection
+    }
+  }
+}
+# History entries associated with the project.
+query project_history(
+  $id: String!
+  # A cursor to be used with first for forward pagination
+  $after: String
+  # A cursor to be used with last for backward pagination.
+  $before: String
+  # The number of items to forward paginate (used with after). Defaults to 50.
+  $first: Int
+  # Should archived resources be included (default: false)
+  $includeArchived: Boolean
+  # The number of items to backward paginate (used with before). Defaults to 50.
+  $last: Int
+  # By which field should the pagination order by. Available options are createdAt (default) and updatedAt.
+  $orderBy: PaginationOrderBy
+) {
+  project(id: $id) {
+    history(
+      after: $after
+      before: $before
+      first: $first
+      includeArchived: $includeArchived
+      last: $last
+      orderBy: $orderBy
+    ) {
+      ...ProjectHistoryConnection
+    }
+  }
+}
+# Initiatives that this project belongs to.
+query project_initiatives(
+  $id: String!
+  # A cursor to be used with first for forward pagination
+  $after: String
+  # A cursor to be used with last for backward pagination.
+  $before: String
+  # The number of items to forward paginate (used with after). Defaults to 50.
+  $first: Int
+  # Should archived resources be included (default: false)
+  $includeArchived: Boolean
+  # The number of items to backward paginate (used with before). Defaults to 50.
+  $last: Int
+  # By which field should the pagination order by. Available options are createdAt (default) and updatedAt.
+  $orderBy: PaginationOrderBy
+) {
+  project(id: $id) {
+    initiatives(
+      after: $after
+      before: $before
+      first: $first
+      includeArchived: $includeArchived
+      last: $last
+      orderBy: $orderBy
+    ) {
+      ...InitiativeConnection
+    }
+  }
+}
 # Issues associated with the project.
 query project_issues(
   $id: String!
@@ -8316,35 +10072,6 @@ query project_issues(
       orderBy: $orderBy
     ) {
       ...IssueConnection
-    }
-  }
-}
-# Links associated with the project.
-query project_links(
-  $id: String!
-  # A cursor to be used with first for forward pagination
-  $after: String
-  # A cursor to be used with last for backward pagination.
-  $before: String
-  # The number of items to forward paginate (used with after). Defaults to 50.
-  $first: Int
-  # Should archived resources be included (default: false)
-  $includeArchived: Boolean
-  # The number of items to backward paginate (used with before). Defaults to 50.
-  $last: Int
-  # By which field should the pagination order by. Available options are createdAt (default) and updatedAt.
-  $orderBy: PaginationOrderBy
-) {
-  project(id: $id) {
-    links(
-      after: $after
-      before: $before
-      first: $first
-      includeArchived: $includeArchived
-      last: $last
-      orderBy: $orderBy
-    ) {
-      ...ProjectLinkConnection
     }
   }
 }
@@ -8444,14 +10171,6 @@ query project_projectUpdates(
     }
   }
 }
-# The status that the project is associated with.
-query project_status($id: String!) {
-  project(id: $id) {
-    status {
-      ...ProjectStatus
-    }
-  }
-}
 # Teams associated with this project.
 query project_teams(
   $id: String!
@@ -8490,42 +10209,18 @@ query projectFilterSuggestion($prompt: String!) {
     ...ProjectFilterSuggestionPayload
   }
 }
-# One specific project link.
-query projectLink($id: String!) {
-  projectLink(id: $id) {
-    ...ProjectLink
-  }
-}
-# All links for the project.
-query projectLinks(
-  # A cursor to be used with first for forward pagination
-  $after: String
-  # A cursor to be used with last for backward pagination.
-  $before: String
-  # The number of items to forward paginate (used with after). Defaults to 50.
-  $first: Int
-  # Should archived resources be included (default: false)
-  $includeArchived: Boolean
-  # The number of items to backward paginate (used with before). Defaults to 50.
-  $last: Int
-  # By which field should the pagination order by. Available options are createdAt (default) and updatedAt.
-  $orderBy: PaginationOrderBy
-) {
-  projectLinks(
-    after: $after
-    before: $before
-    first: $first
-    includeArchived: $includeArchived
-    last: $last
-    orderBy: $orderBy
-  ) {
-    ...ProjectLinkConnection
-  }
-}
 # One specific project milestone.
 query projectMilestone($id: String!) {
   projectMilestone(id: $id) {
     ...ProjectMilestone
+  }
+}
+# The content of the project milestone description.
+query projectMilestone_documentContent($id: String!) {
+  projectMilestone(id: $id) {
+    documentContent {
+      ...DocumentContent
+    }
   }
 }
 # Issues associated with the project milestone.
@@ -8619,6 +10314,38 @@ query projectRelations(
     orderBy: $orderBy
   ) {
     ...ProjectRelationConnection
+  }
+}
+# One specific project status.
+query projectStatus($id: String!) {
+  projectStatus(id: $id) {
+    ...ProjectStatus
+  }
+}
+# All project statuses.
+query projectStatuses(
+  # A cursor to be used with first for forward pagination
+  $after: String
+  # A cursor to be used with last for backward pagination.
+  $before: String
+  # The number of items to forward paginate (used with after). Defaults to 50.
+  $first: Int
+  # Should archived resources be included (default: false)
+  $includeArchived: Boolean
+  # The number of items to backward paginate (used with before). Defaults to 50.
+  $last: Int
+  # By which field should the pagination order by. Available options are createdAt (default) and updatedAt.
+  $orderBy: PaginationOrderBy
+) {
+  projectStatuses(
+    after: $after
+    before: $before
+    first: $first
+    includeArchived: $includeArchived
+    last: $last
+    orderBy: $orderBy
+  ) {
+    ...ProjectStatusConnection
   }
 }
 # A specific project update.
@@ -9386,6 +11113,8 @@ query team_templates(
   $after: String
   # A cursor to be used with last for backward pagination.
   $before: String
+  # Filter returned templates.
+  $filter: NullableTemplateFilter
   # The number of items to forward paginate (used with after). Defaults to 50.
   $first: Int
   # Should archived resources be included (default: false)
@@ -9399,6 +11128,7 @@ query team_templates(
     templates(
       after: $after
       before: $before
+      filter: $filter
       first: $first
       includeArchived: $includeArchived
       last: $last
@@ -9679,6 +11409,36 @@ query user_createdIssues(
     }
   }
 }
+# The user's drafts
+query user_drafts(
+  # The identifier of the user to retrieve. To retrieve the authenticated user, use `viewer` query.
+  $id: String!
+  # A cursor to be used with first for forward pagination
+  $after: String
+  # A cursor to be used with last for backward pagination.
+  $before: String
+  # The number of items to forward paginate (used with after). Defaults to 50.
+  $first: Int
+  # Should archived resources be included (default: false)
+  $includeArchived: Boolean
+  # The number of items to backward paginate (used with before). Defaults to 50.
+  $last: Int
+  # By which field should the pagination order by. Available options are createdAt (default) and updatedAt.
+  $orderBy: PaginationOrderBy
+) {
+  user(id: $id) {
+    drafts(
+      after: $after
+      before: $before
+      first: $first
+      includeArchived: $includeArchived
+      last: $last
+      orderBy: $orderBy
+    ) {
+      ...DraftConnection
+    }
+  }
+}
 # Memberships associated with the user. For easier access of the same data, use `teams` query.
 query user_teamMemberships(
   # The identifier of the user to retrieve. To retrieve the authenticated user, use `viewer` query.
@@ -9748,7 +11508,164 @@ query userSettings {
     ...UserSettings
   }
 }
-# The notification delivery preferences for the user.
+# The user's notification category preferences.
+query userSettings_notificationCategoryPreferences {
+  userSettings {
+    notificationCategoryPreferences {
+      ...NotificationCategoryPreferences
+    }
+  }
+}
+# The preferences for notifications about apps and integrations.
+query userSettings_notificationCategoryPreferences_appsAndIntegrations {
+  userSettings {
+    notificationCategoryPreferences {
+      appsAndIntegrations {
+        ...NotificationChannelPreferences
+      }
+    }
+  }
+}
+# The preferences for notifications about assignments.
+query userSettings_notificationCategoryPreferences_assignments {
+  userSettings {
+    notificationCategoryPreferences {
+      assignments {
+        ...NotificationChannelPreferences
+      }
+    }
+  }
+}
+# The preferences for notifications about comments and replies.
+query userSettings_notificationCategoryPreferences_commentsAndReplies {
+  userSettings {
+    notificationCategoryPreferences {
+      commentsAndReplies {
+        ...NotificationChannelPreferences
+      }
+    }
+  }
+}
+# The preferences for customer notifications.
+query userSettings_notificationCategoryPreferences_customers {
+  userSettings {
+    notificationCategoryPreferences {
+      customers {
+        ...NotificationChannelPreferences
+      }
+    }
+  }
+}
+# The preferences for notifications about document changes.
+query userSettings_notificationCategoryPreferences_documentChanges {
+  userSettings {
+    notificationCategoryPreferences {
+      documentChanges {
+        ...NotificationChannelPreferences
+      }
+    }
+  }
+}
+# The preferences for notifications about mentions.
+query userSettings_notificationCategoryPreferences_mentions {
+  userSettings {
+    notificationCategoryPreferences {
+      mentions {
+        ...NotificationChannelPreferences
+      }
+    }
+  }
+}
+# The preferences for notifications about posts and updates.
+query userSettings_notificationCategoryPreferences_postsAndUpdates {
+  userSettings {
+    notificationCategoryPreferences {
+      postsAndUpdates {
+        ...NotificationChannelPreferences
+      }
+    }
+  }
+}
+# The preferences for notifications about reactions.
+query userSettings_notificationCategoryPreferences_reactions {
+  userSettings {
+    notificationCategoryPreferences {
+      reactions {
+        ...NotificationChannelPreferences
+      }
+    }
+  }
+}
+# The preferences for notifications about reminders.
+query userSettings_notificationCategoryPreferences_reminders {
+  userSettings {
+    notificationCategoryPreferences {
+      reminders {
+        ...NotificationChannelPreferences
+      }
+    }
+  }
+}
+# The preferences for notifications about reviews.
+query userSettings_notificationCategoryPreferences_reviews {
+  userSettings {
+    notificationCategoryPreferences {
+      reviews {
+        ...NotificationChannelPreferences
+      }
+    }
+  }
+}
+# The preferences for notifications about status changes.
+query userSettings_notificationCategoryPreferences_statusChanges {
+  userSettings {
+    notificationCategoryPreferences {
+      statusChanges {
+        ...NotificationChannelPreferences
+      }
+    }
+  }
+}
+# The preferences for notifications about subscriptions.
+query userSettings_notificationCategoryPreferences_subscriptions {
+  userSettings {
+    notificationCategoryPreferences {
+      subscriptions {
+        ...NotificationChannelPreferences
+      }
+    }
+  }
+}
+# The preferences for system notifications.
+query userSettings_notificationCategoryPreferences_system {
+  userSettings {
+    notificationCategoryPreferences {
+      system {
+        ...NotificationChannelPreferences
+      }
+    }
+  }
+}
+# The preferences for triage notifications.
+query userSettings_notificationCategoryPreferences_triage {
+  userSettings {
+    notificationCategoryPreferences {
+      triage {
+        ...NotificationChannelPreferences
+      }
+    }
+  }
+}
+# The user's notification channel preferences.
+query userSettings_notificationChannelPreferences {
+  userSettings {
+    notificationChannelPreferences {
+      ...NotificationChannelPreferences
+    }
+  }
+}
+# The notification delivery preferences for the user. Note: notificationDisabled field is deprecated
+# in favor of notificationChannelPreferences.
 query userSettings_notificationDeliveryPreferences {
   userSettings {
     notificationDeliveryPreferences {
@@ -9908,6 +11825,12 @@ query users(
     ...UserConnection
   }
 }
+# Verify that we received the correct response from the GitHub Enterprise Server.
+query verifyGitHubEnterpriseServerInstallation {
+  verifyGitHubEnterpriseServerInstallation {
+    ...GitHubEnterpriseServerInstallVerificationPayload
+  }
+}
 # The currently authenticated user.
 query viewer {
   viewer {
@@ -9973,6 +11896,34 @@ query viewer_createdIssues(
       orderBy: $orderBy
     ) {
       ...IssueConnection
+    }
+  }
+}
+# The user's drafts
+query viewer_drafts(
+  # A cursor to be used with first for forward pagination
+  $after: String
+  # A cursor to be used with last for backward pagination.
+  $before: String
+  # The number of items to forward paginate (used with after). Defaults to 50.
+  $first: Int
+  # Should archived resources be included (default: false)
+  $includeArchived: Boolean
+  # The number of items to backward paginate (used with before). Defaults to 50.
+  $last: Int
+  # By which field should the pagination order by. Available options are createdAt (default) and updatedAt.
+  $orderBy: PaginationOrderBy
+) {
+  viewer {
+    drafts(
+      after: $after
+      before: $before
+      first: $first
+      includeArchived: $includeArchived
+      last: $last
+      orderBy: $orderBy
+    ) {
+      ...DraftConnection
     }
   }
 }
@@ -10146,15 +12097,6 @@ mutation airbyteIntegrationConnect(
     ...IntegrationPayload
   }
 }
-# [DEPRECATED] Archives an issue attachment.
-mutation archiveAttachment(
-  # The identifier of the attachment to archive.
-  $id: String!
-) {
-  attachmentArchive(id: $id) {
-    ...AttachmentArchivePayload
-  }
-}
 # Creates a new attachment, or updates existing if the same `url` and `issueId` is used.
 mutation createAttachment(
   # The attachment object to create.
@@ -10267,6 +12209,8 @@ mutation attachmentLinkGitHubPR(
   $id: String
   # The issue for which to link the GitHub pull request.
   $issueId: String!
+  # [Internal] The kind of link between the issue and the pull request.
+  $linkKind: GitLinkKind
   # The GitHub pull request number to link.
   $number: Float
   # The owner of the GitHub repository.
@@ -10283,6 +12227,7 @@ mutation attachmentLinkGitHubPR(
     displayIconUrl: $displayIconUrl
     id: $id
     issueId: $issueId
+    linkKind: $linkKind
     number: $number
     owner: $owner
     repo: $repo
@@ -10352,12 +12297,27 @@ mutation attachmentLinkIntercom(
 }
 # Link an existing Jira issue to an issue.
 mutation attachmentLinkJiraIssue(
+  # Create attachment as a user with the provided name. This option is only available to OAuth applications creating attachments in `actor=application` mode.
+  $createAsUser: String
+  # Provide an external user avatar URL. Can only be used in conjunction with the `createAsUser` options. This option is only available to OAuth applications creating comments in `actor=application` mode.
+  $displayIconUrl: String
+  # Optional attachment ID that may be provided through the API.
+  $id: String
   # The issue for which to link the Jira issue.
   $issueId: String!
   # The Jira issue key or ID to link.
   $jiraIssueId: String!
+  # The title to use for the attachment.
+  $title: String
 ) {
-  attachmentLinkJiraIssue(issueId: $issueId, jiraIssueId: $jiraIssueId) {
+  attachmentLinkJiraIssue(
+    createAsUser: $createAsUser
+    displayIconUrl: $displayIconUrl
+    id: $id
+    issueId: $issueId
+    jiraIssueId: $jiraIssueId
+    title: $title
+  ) {
     ...AttachmentPayload
   }
 }
@@ -10439,6 +12399,8 @@ mutation attachmentLinkZendesk(
   $ticketId: String!
   # The title to use for the attachment.
   $title: String
+  # The URL of the Zendesk ticket to link.
+  $url: String
 ) {
   attachmentLinkZendesk(
     createAsUser: $createAsUser
@@ -10447,6 +12409,7 @@ mutation attachmentLinkZendesk(
     issueId: $issueId
     ticketId: $ticketId
     title: $title
+    url: $url
   ) {
     ...AttachmentPayload
   }
@@ -10586,6 +12549,141 @@ mutation updateCustomView(
     ...CustomViewPayload
   }
 }
+# Creates a new customer.
+mutation createCustomer(
+  # The customer to create.
+  $input: CustomerCreateInput!
+) {
+  customerCreate(input: $input) {
+    ...CustomerPayload
+  }
+}
+# Deletes a customer.
+mutation deleteCustomer(
+  # The identifier of the customer to delete.
+  $id: String!
+) {
+  customerDelete(id: $id) {
+    ...DeletePayload
+  }
+}
+# Merges two customers.
+mutation customerMerge(
+  # The ID of the customer to merge. The needs of this customer will be transferred before it gets deleted.
+  $sourceCustomerId: String!
+  # The ID of the target customer to merge into. The needs of this customer will be retained
+  $targetCustomerId: String!
+) {
+  customerMerge(sourceCustomerId: $sourceCustomerId, targetCustomerId: $targetCustomerId) {
+    ...CustomerPayload
+  }
+}
+# Archives a customer need.
+mutation archiveCustomerNeed(
+  # The identifier of the customer need to archive.
+  $id: String!
+) {
+  customerNeedArchive(id: $id) {
+    ...CustomerNeedArchivePayload
+  }
+}
+# Creates a new customer need.
+mutation createCustomerNeed(
+  # The customer need to create.
+  $input: CustomerNeedCreateInput!
+) {
+  customerNeedCreate(input: $input) {
+    ...CustomerNeedPayload
+  }
+}
+# Creates a new customer need out of an attachment
+mutation customerNeedCreateFromAttachment(
+  # The customer need to create.
+  $input: CustomerNeedCreateFromAttachmentInput!
+) {
+  customerNeedCreateFromAttachment(input: $input) {
+    ...CustomerNeedPayload
+  }
+}
+# Deletes a customer need.
+mutation deleteCustomerNeed(
+  # The identifier of the customer need to delete.
+  $id: String!
+) {
+  customerNeedDelete(id: $id) {
+    ...DeletePayload
+  }
+}
+# Unarchives a customer need.
+mutation unarchiveCustomerNeed(
+  # The identifier of the customer need to unarchive.
+  $id: String!
+) {
+  customerNeedUnarchive(id: $id) {
+    ...CustomerNeedArchivePayload
+  }
+}
+# Updates a customer need
+mutation updateCustomerNeed(
+  # The identifier of the customer need to update.
+  $id: String!
+  # The properties of the customer need to update.
+  $input: CustomerNeedUpdateInput!
+) {
+  customerNeedUpdate(id: $id, input: $input) {
+    ...CustomerNeedPayload
+  }
+}
+# Creates a new customer tier.
+mutation createCustomerTier(
+  # The CustomerTier object to create.
+  $input: CustomerTierCreateInput!
+) {
+  customerTierCreate(input: $input) {
+    ...CustomerTierPayload
+  }
+}
+# Deletes a customer tier.
+mutation deleteCustomerTier(
+  # The identifier of the customer tier to delete.
+  $id: String!
+) {
+  customerTierDelete(id: $id) {
+    ...DeletePayload
+  }
+}
+# Updates a customer tier.
+mutation updateCustomerTier(
+  # The identifier of the customer tier to update.
+  $id: String!
+  # A partial CustomerTier object to update the CustomerTier with.
+  $input: CustomerTierUpdateInput!
+) {
+  customerTierUpdate(id: $id, input: $input) {
+    ...CustomerTierPayload
+  }
+}
+# Updates a customer
+mutation updateCustomer(
+  # The identifier of the customer to update.
+  $id: String!
+  # The properties of the customer to update.
+  $input: CustomerUpdateInput!
+) {
+  customerUpdate(id: $id, input: $input) {
+    ...CustomerPayload
+  }
+}
+# Upserts a customer, creating it if it doesn't exists, updating it otherwise. Matches against an
+# existing customer with `id` or `externalId`
+mutation customerUpsert(
+  # The customer to create.
+  $input: CustomerUpsertInput!
+) {
+  customerUpsert(input: $input) {
+    ...CustomerPayload
+  }
+}
 # Archives a cycle.
 mutation archiveCycle(
   # The identifier of the cycle to archive.
@@ -10604,12 +12702,23 @@ mutation createCycle(
     ...CyclePayload
   }
 }
-# [DEPRECATED] Shifts all cycles starts by a certain number of weeks.
+# Shifts all cycles starts and ends by a certain number of days, starting from the provided cycle
+# onwards.
 mutation cycleShiftAll(
   # A partial cycle object to update the cycle with.
   $input: CycleShiftAllInput!
 ) {
   cycleShiftAll(input: $input) {
+    ...CyclePayload
+  }
+}
+# Shifts all cycles starts and ends by a certain number of days, starting from the provided cycle
+# onwards.
+mutation cycleStartUpcomingCycleToday(
+  # The identifier of the cycle to start as of midnight today. Must be the upcoming cycle.
+  $id: String!
+) {
+  cycleStartUpcomingCycleToday(id: $id) {
     ...CyclePayload
   }
 }
@@ -10624,35 +12733,6 @@ mutation updateCycle(
     ...CyclePayload
   }
 }
-# Creates a new diary entry.
-mutation createDiaryEntry(
-  # The diary entry to create.
-  $input: DiaryEntryCreateInput!
-) {
-  diaryEntryCreate(input: $input) {
-    ...DiaryEntryPayload
-  }
-}
-# Deletes a diaryEntry.
-mutation deleteDiaryEntry(
-  # The identifier of the diaryEntry to delete.
-  $id: String!
-) {
-  diaryEntryDelete(id: $id) {
-    ...DeletePayload
-  }
-}
-# Updates a diaryEntry.
-mutation updateDiaryEntry(
-  # The identifier of the diary entry to update.
-  $id: String!
-  # A partial diary entry object to update the diary entry with.
-  $input: DiaryEntryUpdateInput!
-) {
-  diaryEntryUpdate(id: $id, input: $input) {
-    ...DiaryEntryPayload
-  }
-}
 # Creates a new document.
 mutation createDocument(
   # The document to create.
@@ -10662,13 +12742,22 @@ mutation createDocument(
     ...DocumentPayload
   }
 }
-# Deletes a document.
+# Deletes (trashes) a document.
 mutation deleteDocument(
   # The identifier of the document to delete.
   $id: String!
 ) {
   documentDelete(id: $id) {
-    ...DeletePayload
+    ...DocumentArchivePayload
+  }
+}
+# Restores a document.
+mutation unarchiveDocument(
+  # The identifier of the document to restore.
+  $id: String!
+) {
+  documentUnarchive(id: $id) {
+    ...DocumentArchivePayload
   }
 }
 # Updates a document.
@@ -10938,6 +13027,82 @@ mutation importFileUpload(
     ...UploadPayload
   }
 }
+# Archives a initiative.
+mutation archiveInitiative(
+  # The identifier of the initiative to archive.
+  $id: String!
+) {
+  initiativeArchive(id: $id) {
+    ...InitiativeArchivePayload
+  }
+}
+# Creates a new initiative.
+mutation createInitiative(
+  # The properties of the initiative to create.
+  $input: InitiativeCreateInput!
+) {
+  initiativeCreate(input: $input) {
+    ...InitiativePayload
+  }
+}
+# Deletes (trashes) an initiative.
+mutation deleteInitiative(
+  # The identifier of the initiative to delete.
+  $id: String!
+) {
+  initiativeDelete(id: $id) {
+    ...DeletePayload
+  }
+}
+# Creates a new initiativeToProject join.
+mutation createInitiativeToProject(
+  # The properties of the initiativeToProject to create.
+  $input: InitiativeToProjectCreateInput!
+) {
+  initiativeToProjectCreate(input: $input) {
+    ...InitiativeToProjectPayload
+  }
+}
+# Deletes a initiativeToProject.
+mutation deleteInitiativeToProject(
+  # The identifier of the initiativeToProject to delete.
+  $id: String!
+) {
+  initiativeToProjectDelete(id: $id) {
+    ...DeletePayload
+  }
+}
+# Updates a initiativeToProject.
+mutation updateInitiativeToProject(
+  # The identifier of the initiativeToProject to update.
+  $id: String!
+  # The properties of the initiativeToProject to update.
+  $input: InitiativeToProjectUpdateInput!
+) {
+  initiativeToProjectUpdate(id: $id, input: $input) {
+    ...InitiativeToProjectPayload
+  }
+}
+# Unarchives a initiative.
+mutation unarchiveInitiative(
+  # The identifier of the initiative to unarchive.
+  $id: String!
+) {
+  initiativeUnarchive(id: $id) {
+    ...InitiativeArchivePayload
+  }
+}
+# Updates a initiative.
+mutation updateInitiative(
+  # The identifier of the initiative to update.
+  $id: String!
+  # The properties of the initiative to update.
+  $input: InitiativeUpdateInput!
+) {
+  initiativeUpdate(id: $id, input: $input) {
+    ...InitiativePayload
+  }
+}
 # Archives an integration.
 mutation archiveIntegration(
   # The identifier of the integration to archive.
@@ -11000,6 +13165,17 @@ mutation integrationFront(
     ...IntegrationPayload
   }
 }
+# Connects the organization with a GitHub Enterprise Server.
+mutation integrationGitHubEnterpriseServerConnect(
+  # The base URL of the GitHub Enterprise Server installation.
+  $githubUrl: String!
+  # The name of GitHub organization.
+  $organizationName: String
+) {
+  integrationGitHubEnterpriseServerConnect(githubUrl: $githubUrl, organizationName: $organizationName) {
+    ...GitHubEnterpriseServerPayload
+  }
+}
 # Connect your GitHub account to Linear.
 mutation integrationGitHubPersonal(
   # The GitHub OAuth code.
@@ -11017,19 +13193,32 @@ mutation createIntegrationGithubCommit {
 }
 # Connects the organization with the GitHub App.
 mutation integrationGithubConnect(
+  # The GitHub grant code that's exchanged for OAuth tokens.
+  $code: String!
   # The GitHub data to connect with.
   $installationId: String!
 ) {
-  integrationGithubConnect(installationId: $installationId) {
+  integrationGithubConnect(code: $code, installationId: $installationId) {
     ...IntegrationPayload
   }
 }
 # Connects the organization with the GitHub Import App.
 mutation integrationGithubImportConnect(
+  # The GitHub grant code that's exchanged for OAuth tokens.
+  $code: String!
   # The GitHub data to connect with.
   $installationId: String!
 ) {
-  integrationGithubImportConnect(installationId: $installationId) {
+  integrationGithubImportConnect(code: $code, installationId: $installationId) {
+    ...IntegrationPayload
+  }
+}
+# Refreshes the data for a GitHub import integration.
+mutation integrationGithubImportRefresh(
+  # The id of the integration to update.
+  $id: String!
+) {
+  integrationGithubImportRefresh(id: $id) {
     ...IntegrationPayload
   }
 }
@@ -11041,7 +13230,7 @@ mutation integrationGitlabConnect(
   $gitlabUrl: String!
 ) {
   integrationGitlabConnect(accessToken: $accessToken, gitlabUrl: $gitlabUrl) {
-    ...IntegrationPayload
+    ...GitLabIntegrationCreatePayload
   }
 }
 # Integrates the organization with Google Sheets.
@@ -11157,6 +13346,19 @@ mutation integrationSlackCustomViewNotifications(
     ...SlackChannelConnectPayload
   }
 }
+# Integrates a Slack Asks channel with a Customer.
+mutation integrationSlackCustomerChannelLink(
+  # The Slack OAuth code.
+  $code: String!
+  # The customer to link the Slack channel with
+  $customerId: String!
+  # The Slack OAuth redirect URI.
+  $redirectUri: String!
+) {
+  integrationSlackCustomerChannelLink(code: $code, customerId: $customerId, redirectUri: $redirectUri) {
+    ...SuccessPayload
+  }
+}
 # Imports custom emojis from your Slack workspace.
 mutation integrationSlackImportEmojis(
   # The Slack OAuth code.
@@ -11190,7 +13392,7 @@ mutation integrationSlackPersonal(
     ...IntegrationPayload
   }
 }
-# Slack webhook integration.
+# Slack integration for team notifications.
 mutation integrationSlackPost(
   # The Slack OAuth code.
   $code: String!
@@ -11236,17 +13438,6 @@ mutation deleteIntegrationTemplate(
 ) {
   integrationTemplateDelete(id: $id) {
     ...DeletePayload
-  }
-}
-# Updates the organization's Slack integration.
-mutation integrationUpdateSlack(
-  # The Slack OAuth code.
-  $code: String!
-  # The Slack OAuth redirect URI.
-  $redirectUri: String!
-) {
-  integrationUpdateSlack(code: $code, redirectUri: $redirectUri) {
-    ...IntegrationPayload
   }
 }
 # Integrates the organization with Zendesk.
@@ -11306,6 +13497,15 @@ mutation archiveIssue(
     ...IssueArchivePayload
   }
 }
+# Creates a list of issues in one transaction.
+mutation createIssueBatch(
+  # A list of issue objects to create.
+  $input: IssueBatchCreateInput!
+) {
+  issueBatchCreate(input: $input) {
+    ...IssueBatchPayload
+  }
+}
 # Updates multiple issues at once.
 mutation updateIssueBatch(
   # The id's of the issues to update. Can't be more than 50 at a time.
@@ -11330,8 +13530,10 @@ mutation createIssue(
 mutation deleteIssue(
   # The identifier of the issue to delete.
   $id: String!
+  # Whether to permanently delete the issue and skip the grace period of 30 days. Available only to admins!
+  $permanentlyDelete: Boolean
 ) {
-  issueDelete(id: $id) {
+  issueDelete(id: $id, permanentlyDelete: $permanentlyDelete) {
     ...IssueArchivePayload
   }
 }
@@ -11430,24 +13632,18 @@ mutation issueImportCreateClubhouse(
 }
 # Kicks off a GitHub import job.
 mutation issueImportCreateGithub(
-  # [DEPRECATED] ID of the Github repository from which we will import data.
-  $githubRepoId: String
+  # Labels to use to filter the import data. Only issues matching any of these filters will be imported.
+  $githubLabels: [String!]
   # IDs of the Github repositories from which we will import data.
   $githubRepoIds: [Int!]
-  # [DEPRECATED] GitHub repository name from which we will import data.
-  $githubRepoName: String
-  # [DEPRECATED] GitHub owner (user or org) for the repository from which we will import data.
-  $githubRepoOwner: String
   # Whether or not we should import GitHub organization level projects.
   $githubShouldImportOrgProjects: Boolean
-  # [DEPRECATED] GitHub token to fetch information from the GitHub API.
-  $githubToken: String
   # Whether or not we should collect the data for closed issues.
   $includeClosedIssues: Boolean
   # Whether to instantly process the import with the default configuration mapping.
   $instantProcess: Boolean
-  # ID of the Github import integration to use to access issues.
-  $integrationId: String!
+  # [DEPRECATED] ID of the Github import integration to use to access issues.
+  $integrationId: String
   # ID of the organization into which to import data.
   $organizationId: String
   # ID of the team into which to import data.
@@ -11456,12 +13652,9 @@ mutation issueImportCreateGithub(
   $teamName: String
 ) {
   issueImportCreateGithub(
-    githubRepoId: $githubRepoId
+    githubLabels: $githubLabels
     githubRepoIds: $githubRepoIds
-    githubRepoName: $githubRepoName
-    githubRepoOwner: $githubRepoOwner
     githubShouldImportOrgProjects: $githubShouldImportOrgProjects
-    githubToken: $githubToken
     includeClosedIssues: $includeClosedIssues
     instantProcess: $instantProcess
     integrationId: $integrationId
@@ -11488,6 +13681,8 @@ mutation issueImportCreateJira(
   $jiraProject: String!
   # Jira personal access token to access Jira REST API.
   $jiraToken: String!
+  # A custom JQL query to filter issues being imported
+  $jql: String
   # ID of the organization into which to import data.
   $organizationId: String
   # ID of the team into which to import data. Empty to create new team.
@@ -11503,6 +13698,7 @@ mutation issueImportCreateJira(
     jiraHostname: $jiraHostname
     jiraProject: $jiraProject
     jiraToken: $jiraToken
+    jql: $jql
     organizationId: $organizationId
     teamId: $teamId
     teamName: $teamName
@@ -11689,20 +13885,29 @@ mutation leaveOrganization(
   }
 }
 # Logout the client.
-mutation logout {
-  logout {
+mutation logout(
+  # The reason for logging out.
+  $reason: String
+) {
+  logout(reason: $reason) {
     ...LogoutResponse
   }
 }
 # Logout all of user's sessions including the active one.
-mutation logoutAllSessions {
-  logoutAllSessions {
+mutation logoutAllSessions(
+  # The reason for logging out.
+  $reason: String
+) {
+  logoutAllSessions(reason: $reason) {
     ...LogoutResponse
   }
 }
 # Logout all of user's sessions excluding the current one.
-mutation logoutOtherSessions {
-  logoutOtherSessions {
+mutation logoutOtherSessions(
+  # The reason for logging out.
+  $reason: String
+) {
+  logoutOtherSessions(reason: $reason) {
     ...LogoutResponse
   }
 }
@@ -11724,7 +13929,7 @@ mutation archiveNotification(
     ...NotificationArchivePayload
   }
 }
-# Archives all of the user's past notifications for the associated entity.
+# Archives a notification and all related notifications.
 mutation notificationArchiveAll(
   # The type and id of the entity to archive notifications for.
   $input: NotificationEntityInput!
@@ -11733,7 +13938,21 @@ mutation notificationArchiveAll(
     ...NotificationBatchActionPayload
   }
 }
-# Marks all past notifications for the associated entity as read.
+# Subscribes to or unsubscribes from a notification category for a given notification channel for the
+# user
+mutation updateNotificationCategoryChannelSubscription(
+  # The notification category to subscribe to or unsubscribe from
+  $category: NotificationCategory!
+  # The notification channel in which to subscribe to or unsubscribe from the category
+  $channel: NotificationChannel!
+  # True if the user wants to subscribe, false if the user wants to unsubscribe
+  $subscribe: Boolean!
+) {
+  notificationCategoryChannelSubscriptionUpdate(category: $category, channel: $channel, subscribe: $subscribe) {
+    ...UserSettingsPayload
+  }
+}
+# Marks notification and all related notifications as read.
 mutation notificationMarkReadAll(
   # The type and id of the entity to archive notifications for.
   $input: NotificationEntityInput!
@@ -11744,7 +13963,7 @@ mutation notificationMarkReadAll(
     ...NotificationBatchActionPayload
   }
 }
-# Marks all past notifications for the associated entity as unread.
+# Marks notification and all related notifications as unread.
 mutation notificationMarkUnreadAll(
   # The type and id of the entity to archive notifications for.
   $input: NotificationEntityInput!
@@ -11753,7 +13972,7 @@ mutation notificationMarkUnreadAll(
     ...NotificationBatchActionPayload
   }
 }
-# Snoozes a notification and all past notifications for the associated entity.
+# Snoozes a notification and all related notifications.
 mutation notificationSnoozeAll(
   # The type and id of the entity to archive notifications for.
   $input: NotificationEntityInput!
@@ -11802,7 +14021,7 @@ mutation unarchiveNotification(
     ...NotificationArchivePayload
   }
 }
-# Unsnoozes a notification and all past notifications for the associated entity.
+# Unsnoozes a notification and all related notifications.
 mutation notificationUnsnoozeAll(
   # The type and id of the entity to archive notifications for.
   $input: NotificationEntityInput!
@@ -11883,9 +14102,18 @@ mutation updateOrganizationInvite(
     ...OrganizationInvitePayload
   }
 }
-# Starts a trial for the organization. Administrator privileges required.
+# [DEPRECATED] Starts a trial for the organization. Administrator privileges required.
 mutation organizationStartTrial {
   organizationStartTrial {
+    ...OrganizationStartTrialPayload
+  }
+}
+# Starts a trial for the organization on the specified plan type. Administrator privileges required.
+mutation organizationStartTrialForPlan(
+  # Plan details for trial
+  $input: OrganizationStartTrialInput!
+) {
+  organizationStartTrialForPlan(input: $input) {
     ...OrganizationStartTrialPayload
   }
 }
@@ -11929,35 +14157,6 @@ mutation deleteProject(
     ...ProjectArchivePayload
   }
 }
-# Creates a new project link.
-mutation createProjectLink(
-  # The project link object to create.
-  $input: ProjectLinkCreateInput!
-) {
-  projectLinkCreate(input: $input) {
-    ...ProjectLinkPayload
-  }
-}
-# Deletes a project link.
-mutation deleteProjectLink(
-  # The identifier of the project link to delete.
-  $id: String!
-) {
-  projectLinkDelete(id: $id) {
-    ...DeletePayload
-  }
-}
-# Updates a project link.
-mutation updateProjectLink(
-  # The identifier of the project link to update.
-  $id: String!
-  # The project link object to update.
-  $input: ProjectLinkUpdateInput!
-) {
-  projectLinkUpdate(id: $id, input: $input) {
-    ...ProjectLinkPayload
-  }
-}
 # Creates a new project milestone.
 mutation createProjectMilestone(
   # The project milestone to create.
@@ -11987,6 +14186,73 @@ mutation updateProjectMilestone(
     ...ProjectMilestonePayload
   }
 }
+# Creates a new project relation.
+mutation createProjectRelation(
+  # The project relation to create.
+  $input: ProjectRelationCreateInput!
+) {
+  projectRelationCreate(input: $input) {
+    ...ProjectRelationPayload
+  }
+}
+# Deletes a project relation.
+mutation deleteProjectRelation(
+  # The identifier of the project relation to delete.
+  $id: String!
+) {
+  projectRelationDelete(id: $id) {
+    ...DeletePayload
+  }
+}
+# Updates a project relation.
+mutation updateProjectRelation(
+  # The identifier of the project relation to update.
+  $id: String!
+  # The properties of the project relation to update.
+  $input: ProjectRelationUpdateInput!
+) {
+  projectRelationUpdate(id: $id, input: $input) {
+    ...ProjectRelationPayload
+  }
+}
+# Archives a project status.
+mutation archiveProjectStatus(
+  # The identifier of the project status to archive.
+  $id: String!
+) {
+  projectStatusArchive(id: $id) {
+    ...ProjectStatusArchivePayload
+  }
+}
+# Creates a new project status.
+mutation createProjectStatus(
+  # The ProjectStatus object to create.
+  $input: ProjectStatusCreateInput!
+) {
+  projectStatusCreate(input: $input) {
+    ...ProjectStatusPayload
+  }
+}
+# Unarchives a project status.
+mutation unarchiveProjectStatus(
+  # The identifier of the project status to unarchive.
+  $id: String!
+) {
+  projectStatusUnarchive(id: $id) {
+    ...ProjectStatusArchivePayload
+  }
+}
+# Updates a project status.
+mutation updateProjectStatus(
+  # The identifier of the project status to update.
+  $id: String!
+  # A partial ProjectStatus object to update the ProjectStatus with.
+  $input: ProjectStatusUpdateInput!
+) {
+  projectStatusUpdate(id: $id, input: $input) {
+    ...ProjectStatusPayload
+  }
+}
 # Unarchives a project.
 mutation unarchiveProject(
   # The identifier of the project to restore. Also the identifier from the URL is accepted.
@@ -12005,6 +14271,15 @@ mutation updateProject(
 ) {
   projectUpdate(id: $id, input: $input) {
     ...ProjectPayload
+  }
+}
+# Archives a project update.
+mutation archiveProjectUpdate(
+  # The identifier of the project update to archive.
+  $id: String!
+) {
+  projectUpdateArchive(id: $id) {
+    ...ProjectUpdateArchivePayload
   }
 }
 # Creates a new project update.
@@ -12041,6 +14316,15 @@ mutation projectUpdateMarkAsRead(
 ) {
   projectUpdateMarkAsRead(id: $id) {
     ...ProjectUpdateWithInteractionPayload
+  }
+}
+# Unarchives a project update.
+mutation unarchiveProjectUpdate(
+  # The identifier of the project update to unarchive.
+  $id: String!
+) {
+  projectUpdateUnarchive(id: $id) {
+    ...ProjectUpdateArchivePayload
   }
 }
 # Updates a project update.
@@ -12196,7 +14480,7 @@ mutation samlTokenUserAccountAuth(
 # Creates a new team. The user who creates the team will automatically be added as a member to the
 # newly created team.
 mutation createTeam(
-  # The team id to copy settings from.
+  # The team id to copy settings from, if any.
   $copySettingsFromTeamId: String
   # The team object to create.
   $input: TeamCreateInput!
@@ -12243,10 +14527,12 @@ mutation createTeamMembership(
 }
 # Deletes a team membership.
 mutation deleteTeamMembership(
+  # Whether to leave the parent teams.
+  $alsoLeaveParentTeams: Boolean
   # The identifier of the team membership to delete.
   $id: String!
 ) {
-  teamMembershipDelete(id: $id) {
+  teamMembershipDelete(alsoLeaveParentTeams: $alsoLeaveParentTeams, id: $id) {
     ...DeletePayload
   }
 }
@@ -12276,8 +14562,10 @@ mutation updateTeam(
   $id: String!
   # A partial team object to update the team with.
   $input: TeamUpdateInput!
+  # [INTERNAL] Mapping of existing team entities to those inherited from the parent team
+  $mapping: InheritanceEntityMapping
 ) {
-  teamUpdate(id: $id, input: $input) {
+  teamUpdate(id: $id, input: $input, mapping: $mapping) {
     ...TeamPayload
   }
 }
@@ -12453,15 +14741,6 @@ mutation userPromoteMember(
 ) {
   userPromoteMember(id: $id) {
     ...UserAdminPayload
-  }
-}
-# [Deprecated] Updates a user's settings flag.
-mutation userSettingsFlagIncrement(
-  # Flag to increment.
-  $flag: String!
-) {
-  userSettingsFlagIncrement(flag: $flag) {
-    ...UserSettingsFlagPayload
   }
 }
 # Resets user's setting flags.
